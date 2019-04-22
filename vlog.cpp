@@ -149,7 +149,7 @@ bool vlog_init()
               for(auto& elem: log_levels) {
                   if (var_matches(val, elem.str)) {
                       vlog_option_level = elem.lvl;
-                      printf("Setting vlog level to %s\n", elem.str);
+//                      printf("Setting vlog level to %s\n", elem.str);
                       found = true;
                       break;
                   }
@@ -171,7 +171,7 @@ bool vlog_init()
                   unsigned int mask = 0;
                   for(auto& elem: log_categories) {
                       if (strcasestr(val, elem.str)) {
-                          printf("Setting vlog category to %s\n", elem.str);
+//                          printf("Setting vlog category to %s\n", elem.str);
                           mask |= (1 << elem.cat);
                       }
                   }
