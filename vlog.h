@@ -9,7 +9,8 @@ enum LogCategory
   VCAT_DETECT,
   VCAT_TRACK,
   VCAT_SENSOR,
-  VCAT_GUI
+  VCAT_GUI,
+  VCAT_HAL
 };
 
 enum LogLevel
