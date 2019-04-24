@@ -70,6 +70,9 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
 #define vlog_finest(category, ...) \
   vlog_func(VL_FINEST, category, true, __FILE__, __LINE__, __func__, __VA_ARGS__ )
 
+#define vlog_always(...) \
+  vlog_func(VL_ALWAYS, VCAT_UNKNOWN, true, __FILE__, __LINE__, __func__, __VA_ARGS__ )
+
 bool vlog_init();
 void vlog_fini();
 void vlog_flush(); // Ensure all data is on disk
