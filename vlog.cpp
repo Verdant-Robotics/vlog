@@ -34,7 +34,8 @@ static const struct log_categories {
   { "TRACK"  , VCAT_TRACK   },
   { "SENSOR" , VCAT_SENSOR  },
   { "HAL"    , VCAT_HAL     },
-  { "GUI"    , VCAT_GUI     }
+  { "GUI"    , VCAT_GUI     },
+  { "TEST"   , VCAT_TEST    }
 };
 
 static const struct log_levels {
