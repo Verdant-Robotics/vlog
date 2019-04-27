@@ -277,7 +277,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   }
   vfprintf(log_stream, fmt, args);
   va_end(args);
-  vlog_flush();
+  fflush(log_stream);
 }
 
 void vlog_flush() // Ensure all data is on disk
