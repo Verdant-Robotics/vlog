@@ -13,7 +13,8 @@ enum LogCategory
   VCAT_SENSOR,
   VCAT_GUI,
   VCAT_HAL,
-  VCAT_TEST
+  VCAT_TEST,
+  VCAT_NODE
 };
 
 enum LogLevel
