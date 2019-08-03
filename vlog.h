@@ -14,7 +14,8 @@ enum LogCategory
   VCAT_GUI,
   VCAT_HAL,
   VCAT_TEST,
-  VCAT_NODE
+  VCAT_NODE,
+  VCAT_ASSERT
 };
 
 enum LogLevel
@@ -74,6 +75,15 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
 
 #define vlog_always(...) \
   vlog_func(VL_ALWAYS, VCAT_UNKNOWN, true, __FILE__, __LINE__, __func__, __VA_ARGS__ )
+
+#define VLOG_ASSERT(expr, ...)                                          \
+  do {                                                                  \
+    if (!(expr)) {                                                      \
+      vlog_func(VL_FATAL, VCAT_ASSERT, true, __FILE__, __LINE__,        \
+                __func__,                                               \
+                "Assertion failed: " #expr __VA_ARGS__ );    \
+    }                                                                   \
+  } while (0)                                                           
 
 bool vlog_init();
 void vlog_fini();
