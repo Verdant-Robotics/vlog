@@ -12,12 +12,12 @@ static char log_file[512] = {};
 
 bool vlog_option_location  = false;    // Log the file, line, function for each message?
 bool vlog_option_thread_id = false;    // Log the thread id for each message?
-bool vlog_option_timelog   = false;    // Log the time for each message?
+bool vlog_option_timelog   = true;     // Log the time for each message?
 bool vlog_option_time_date = false;    // Date or timestamp in seconds
 bool vlog_option_print_category = false; // Should the category be logged?
-bool vlog_option_print_level = true; // Should the level be logged?
+bool vlog_option_print_level = true;   // Should the level be logged?
 char* vlog_option_file = log_file;     // where to log
-int vlog_option_level = VL_ERROR;      // Log level to use
+int vlog_option_level = VL_WARNING;    // Log level to use
 unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfield
 
 static bool vlog_init_done = false;
@@ -171,6 +171,7 @@ bool vlog_init()
                   // Nothing to do, this is the default
               } else {
                   unsigned int mask = 0;
+                  mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
                   for(auto& elem: log_categories) {
                       if (strcasestr(val, elem.str)) {
 //                          printf("Setting vlog category to %s\n", elem.str);
@@ -209,7 +210,7 @@ static pid_t gettid()
   return syscall(SYS_gettid);
 }
 
-static bool match_category(int category)
+static inline bool match_category(int category)
 {
   return (vlog_option_category & (1 << category)) != 0;
 }
