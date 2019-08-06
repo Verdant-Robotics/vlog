@@ -36,7 +36,8 @@ static const struct log_categories {
   { "HAL"    , VCAT_HAL     },
   { "GUI"    , VCAT_GUI     },
   { "TEST"   , VCAT_TEST    },
-  { "NODE"   , VCAT_NODE    }
+  { "NODE"   , VCAT_NODE    },
+  { "ASSERT" , VCAT_ASSERT  }
 };
 
 static const struct log_levels {
@@ -171,7 +172,6 @@ bool vlog_init()
                   // Nothing to do, this is the default
               } else {
                   unsigned int mask = 0;
-                  mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
                   for(auto& elem: log_categories) {
                       if (strcasestr(val, elem.str)) {
 //                          printf("Setting vlog category to %s\n", elem.str);
@@ -179,6 +179,7 @@ bool vlog_init()
                       }
                   }
                   if (mask != 0) {
+                      mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
                       vlog_option_category = mask;
                   }
               }
