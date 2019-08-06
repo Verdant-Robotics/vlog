@@ -198,14 +198,6 @@ void vlog_fini()
     }
 }
 
-static double get_time()
-{
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  double now = double(tv.tv_sec) + double(tv.tv_usec)/1e6;
-  return now;
-}
-
 static pid_t gettid()
 {
   return syscall(SYS_gettid);
@@ -268,7 +260,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       if (vlog_option_time_date) {
           // TODO: Not implemented so far
       } else {
-         double now = get_time();
+         double now = time_now();
          fprintf(log_stream, "[%f] ", now);
       }
   }

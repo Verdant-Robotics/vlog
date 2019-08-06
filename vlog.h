@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <chrono>
 
 // To add a new category or log level, please modify vlog.cpp the
 // static arrays log_levels and log_categories
@@ -33,6 +34,13 @@ enum LogLevel
   VL_FINER = 40,
   VL_FINEST = 50
 };
+
+inline double time_now() {
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  double now = double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+  return now;
+}
 
 void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...);
 
