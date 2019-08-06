@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdarg.h>
-#include <chrono>
+#include <time.h>
 
 // To add a new category or log level, please modify vlog.cpp the
 // static arrays log_levels and log_categories
