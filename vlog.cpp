@@ -19,6 +19,7 @@ bool vlog_option_print_level = true;   // Should the level be logged?
 char* vlog_option_file = log_file;     // where to log
 int vlog_option_level = VL_WARNING;    // Log level to use
 unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfield
+bool vlog_option_exit_on_fatal = true;
 
 static bool vlog_init_done = false;
 static std::mutex vlog_mutex;
@@ -131,6 +132,8 @@ bool vlog_init()
                       fprintf(stderr, "Could not log to file %s , logging to stdout\n", val);
                   }
               }
+          } else if (var_matches(var, "VLOG_EXIT_ON_FATAL")) {
+            vlog_option_exit_on_fatal = (*val == '1');
           } else if (var_matches(var, "VLOG_SRC_LOCATION")) {
             vlog_option_location = (*val == '1');
           } else if (var_matches(var, "VLOG_THREAD_ID")) {
@@ -230,7 +233,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       vlog_init();
   }
 
-  if (level > vlog_option_level) return;
+  if (level > vlog_option_level && level > VL_FATAL) return;
   if (level > VL_ALWAYS) {
       // Fatal and always are printed for all categories
       if (!match_category(category)) return;
@@ -273,6 +276,12 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   vfprintf(log_stream, fmt, args);
   va_end(args);
   fflush(log_stream);
+
+  if (vlog_option_exit_on_fatal) {
+    // TODO - print stack
+    // TODO - add callback for cleaning up drivers, etc.
+    exit(-1);
+  }
 }
 
 void vlog_flush() // Ensure all data is on disk
