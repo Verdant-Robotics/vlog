@@ -277,7 +277,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   va_end(args);
   fflush(log_stream);
 
-  if (vlog_option_exit_on_fatal) {
+  if (vlog_option_exit_on_fatal && level == VL_FATAL) {
     // TODO - print stack
     // TODO - add callback for cleaning up drivers, etc.
     exit(-1);
