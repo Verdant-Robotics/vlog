@@ -21,8 +21,7 @@ enum LogCategory
 
 enum LogLevel
 {
-  VL_OFF = 0,
-  VL_FATAL = 1,
+  VL_FATAL = 0,
   VL_ALWAYS = 2,
   VL_SEVERE = 5,
   VL_ERROR = 10,
