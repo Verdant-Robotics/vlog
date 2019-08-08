@@ -45,7 +45,6 @@ static const struct log_levels {
     const char *str;
     enum LogLevel lvl;
 } log_levels[] = {
-  { "OFF"    , VL_OFF     },
   { "FATAL"  , VL_FATAL   },
   { "ALWAYS" , VL_ALWAYS  },
   { "SEVERE" , VL_SEVERE  },
@@ -233,7 +232,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       vlog_init();
   }
 
-  if (level > vlog_option_level && level > VL_FATAL) return;
+  if (level > vlog_option_level) return;
   if (level > VL_ALWAYS) {
       // Fatal and always are printed for all categories
       if (!match_category(category)) return;
