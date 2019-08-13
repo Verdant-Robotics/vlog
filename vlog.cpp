@@ -19,7 +19,7 @@ bool vlog_option_print_level = true;   // Should the level be logged?
 char* vlog_option_file = log_file;     // where to log
 int vlog_option_level = VL_WARNING;    // Log level to use
 unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfield
-bool vlog_option_exit_on_fatal = true;
+bool vlog_option_exit_on_fatal = false;
 
 static bool vlog_init_done = false;
 static std::mutex vlog_mutex;
