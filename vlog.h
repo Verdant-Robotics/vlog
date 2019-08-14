@@ -107,6 +107,7 @@ extern bool vlog_option_print_level; // Should the level be logged?
 extern char* vlog_option_file;     // where to log
 extern int vlog_option_level;      // Log level to use
 extern unsigned int vlog_option_category;   // Log categories to use, bitfield
+extern bool vlog_option_exit_on_fatal; // Call exit after a vlog_fatal
 
 extern const char* vlog_vars; // Use this variable to print help on vlog if needed
 
