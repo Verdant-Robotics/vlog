@@ -96,6 +96,8 @@ bool vlog_init();
 void vlog_fini();
 void vlog_flush(); // Ensure all data is on disk
 
+void set_log_level_string(const char *level);
+
 // These variables are for manual setting of logging before init
 
 extern bool vlog_option_location;  // Log the file, line, function for each message?

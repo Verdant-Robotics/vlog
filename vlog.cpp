@@ -22,7 +22,7 @@ unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfie
 bool vlog_option_exit_on_fatal = false;
 
 static bool vlog_init_done = false;
-static std::mutex vlog_mutex;
+static std::recursive_mutex vlog_mutex;
 static FILE* log_stream = nullptr;
 
 static const struct log_categories {
@@ -105,9 +105,33 @@ static const char *getval(const char *var)
     return ++r;
 }
 
+void set_log_level_string(const char *level)
+{
+  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+  bool found = false;
+  for(auto& elem: log_levels) {
+      if (var_matches(level, elem.str)) {
+          vlog_option_level = elem.lvl;
+//        printf("Setting vlog level to %s\n", elem.str);
+          found = true;
+          break;
+      }
+  }
+  if (!found) {
+      if (*level == '0') {
+          vlog_option_level = 0;
+      } else {
+          int converted_val = atoi(level);
+          if (converted_val != 0) {
+              vlog_option_level = converted_val;
+          }
+      }
+  }
+}
+
 bool vlog_init()
 {
-  std::lock_guard<std::mutex> guard(vlog_mutex);
+  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {
       vlog_init_done = true;
 
@@ -150,25 +174,7 @@ bool vlog_init()
                   vlog_option_time_date = false;
               }
           } else if (var_matches(var, "VLOG_LEVEL")) {
-              bool found = false;
-              for(auto& elem: log_levels) {
-                  if (var_matches(val, elem.str)) {
-                      vlog_option_level = elem.lvl;
-//                      printf("Setting vlog level to %s\n", elem.str);
-                      found = true;
-                      break;
-                  }
-              }
-              if (!found) {
-                  if (*val == '0') {
-                      vlog_option_level = 0;
-                  } else {
-                      int converted_val = atoi(val);
-                      if (converted_val != 0) {
-                          vlog_option_level = converted_val;
-                      }
-                  }
-              }
+              set_log_level_string(val);
           } else if (var_matches(var, "VLOG_CATEGORY")) {
               if (var_matches(val, "ALL")) {
                   // Nothing to do, this is the default
@@ -238,7 +244,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       if (!match_category(category)) return;
   }
 
-  std::lock_guard<std::mutex> guard(vlog_mutex);
+  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
 
   // Do the printing
   if (newline) { fprintf(log_stream, "\n"); }
@@ -285,7 +291,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
 
 void vlog_flush() // Ensure all data is on disk
 {
-  std::lock_guard<std::mutex> guard(vlog_mutex);
+  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {
       vlog_init();
   }
