@@ -238,10 +238,18 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       vlog_init();
   }
 
-  if (level > vlog_option_level) return;
+  if (level > vlog_option_level) 
+  {
+    va_end(args);
+    return;
+  }
+  
   if (level > VL_ALWAYS) {
       // Fatal and always are printed for all categories
-      if (!match_category(category)) return;
+      if (!match_category(category)) {
+        va_end(args);
+        return;
+      }
   }
 
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
