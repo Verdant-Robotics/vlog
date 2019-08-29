@@ -38,7 +38,8 @@ static const struct log_categories {
   { "GUI"    , VCAT_GUI     },
   { "TEST"   , VCAT_TEST    },
   { "NODE"   , VCAT_NODE    },
-  { "ASSERT" , VCAT_ASSERT  }
+  { "ASSERT" , VCAT_ASSERT  },
+  { "VID"    , VCAT_VID}
 };
 
 static const struct log_levels {
