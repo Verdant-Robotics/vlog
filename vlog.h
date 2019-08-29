@@ -16,7 +16,8 @@ enum LogCategory
   VCAT_HAL,
   VCAT_TEST,
   VCAT_NODE,
-  VCAT_ASSERT
+  VCAT_ASSERT,
+  VCAT_VID
 };
 
 enum LogLevel
