@@ -39,24 +39,25 @@ static const struct log_categories {
   { "TEST"   , VCAT_TEST    },
   { "NODE"   , VCAT_NODE    },
   { "ASSERT" , VCAT_ASSERT  },
-  { "VID"    , VCAT_VID}
+  { "VID"    , VCAT_VID},
+  { "DB"     , VCAT_DB},
 };
 
 static const struct log_levels {
     const char *str;
     enum LogLevel lvl;
 } log_levels[] = {
-  { "FATAL"  , VL_FATAL   },
-  { "ALWAYS" , VL_ALWAYS  },
-  { "SEVERE" , VL_SEVERE  },
-  { "ERROR"  , VL_ERROR   },
-  { "WARNING", VL_WARNING },
+  { "\e[1;31mFATAL\e[m"  , VL_FATAL   },
+  { "\e[35mALWAYS\e[m" , VL_ALWAYS  },
+  { "\e[31mSEVERE\e[m" , VL_SEVERE  },
+  { "\e[31mERROR\e[m"  , VL_ERROR   },
+  { "\e[33mWARNING\e[m", VL_WARNING },
   { "INFO"   , VL_INFO    },
-  { "CONFIG" , VL_CONFIG  },
-  { "DEBUG"  , VL_DEBUG   },
-  { "FINE"   , VL_FINE    },
-  { "FINER"  , VL_FINER   },
-  { "FINEST" , VL_FINEST  }
+  { "\e[34mCONFIG\e[m" , VL_CONFIG  },
+  { "\e[1mDEBUG\e[m"  , VL_DEBUG   },
+  { "\e[32mFINE\e[m"   , VL_FINE    },
+  { "\e[32mFINER\e[m"  , VL_FINER   },
+  { "\e[1;32mFINEST\e[m" , VL_FINEST  }
 };
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
