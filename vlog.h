@@ -88,9 +88,12 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
 #define VLOG_ASSERT(expr, ...)                                          \
   do {                                                                  \
     if (!(expr)) {                                                      \
+      bool old_val = vlog_option_location;                              \
+      vlog_option_location = true;                                      \
       vlog_func(VL_FATAL, VCAT_ASSERT, true, __FILE__, __LINE__,        \
                 __func__,                                               \
-                "Assertion failed: " #expr __VA_ARGS__ );    \
+                "Assertion failed: " #expr __VA_ARGS__ );               \
+      vlog_option_location = old_val;                                   \
     }                                                                   \
   } while (0)                                                           
 

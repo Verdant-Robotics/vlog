@@ -45,19 +45,20 @@ static const struct log_categories {
 
 static const struct log_levels {
     const char *str;
+    const char *display_str;
     enum LogLevel lvl;
 } log_levels[] = {
-  { "\e[1;31mFATAL\e[m"  , VL_FATAL   },
-  { "\e[35mALWAYS\e[m" , VL_ALWAYS  },
-  { "\e[31mSEVERE\e[m" , VL_SEVERE  },
-  { "\e[31mERROR\e[m"  , VL_ERROR   },
-  { "\e[33mWARNING\e[m", VL_WARNING },
-  { "INFO"   , VL_INFO    },
-  { "\e[34mCONFIG\e[m" , VL_CONFIG  },
-  { "\e[1mDEBUG\e[m"  , VL_DEBUG   },
-  { "\e[32mFINE\e[m"   , VL_FINE    },
-  { "\e[32mFINER\e[m"  , VL_FINER   },
-  { "\e[1;32mFINEST\e[m" , VL_FINEST  }
+  { "FATAL", "\e[1;31mFATAL\e[m"  , VL_FATAL   },
+  { "ALWAYS", "\e[35mALWAYS\e[m" , VL_ALWAYS  },
+  { "SEVERE", "\e[31mSEVERE\e[m" , VL_SEVERE  },
+  { "ERROR", "\e[31mERROR\e[m"  , VL_ERROR   },
+  { "WARNING", "\e[33mWARNING\e[m", VL_WARNING },
+  { "INFO", "INFO"   , VL_INFO    },
+  { "CONFIG", "\e[34mCONFIG\e[m" , VL_CONFIG  },
+  { "DEBUG", "\e[1mDEBUG\e[m"  , VL_DEBUG   },
+  { "FINE", "\e[32mFINE\e[m"   , VL_FINE    },
+  { "FINER", "\e[32mFINER\e[m"  , VL_FINER   },
+  { "FINEST", "\e[1;32mFINEST\e[m" , VL_FINEST  }
 };
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
@@ -222,7 +223,7 @@ static const char *get_level_str(int level)
 {
     for(auto& elem: log_levels) {
         if (elem.lvl == level) {
-            return elem.str;
+            return elem.display_str;
         }
     }
     // We can do this because we only allow a single thread to be printing
