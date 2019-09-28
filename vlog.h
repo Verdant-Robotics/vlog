@@ -112,6 +112,7 @@ extern bool vlog_option_time_date; // Date or timestamp in seconds
 extern bool vlog_option_print_category; // Should the category be logged?
 extern bool vlog_option_print_level; // Should the level be logged?
 extern char* vlog_option_file;     // where to log
+extern char* vlog_option_tee_file; // File where to log simultaneously
 extern int vlog_option_level;      // Log level to use
 extern unsigned int vlog_option_category;   // Log categories to use, bitfield
 extern bool vlog_option_exit_on_fatal; // Call exit after a vlog_fatal
