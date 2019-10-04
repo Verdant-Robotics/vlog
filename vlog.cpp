@@ -270,7 +270,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       fclose(tee_stream);
       tee_stream = nullptr;
     }
-    tee_stream = fopen(tee_file, "w");
+    tee_stream = fopen(tee_file, "a");
     if (tee_stream) {
       strcpy(tee_opened_file, tee_file);
     }
