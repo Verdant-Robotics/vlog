@@ -43,7 +43,7 @@ inline double time_now() {
   return now;
 }
 
-void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...);
+void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...)  __attribute__ (( format( printf, 7, 8 ) ));
 
 #define vlog(level, category, ...) \
   vlog_func(level, category, true, __FILE__, __LINE__, __func__, __VA_ARGS__ )
