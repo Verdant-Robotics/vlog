@@ -320,6 +320,9 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   if (vlog_option_exit_on_fatal && level == VL_FATAL) {
     // TODO - print stack
     // TODO - add callback for cleaning up drivers, etc.
+    fprintf(log_stream, "\n");
+    fflush(log_stream);
+    assert(false); // This helps break in the debugger
     exit(-1);
   }
 }
