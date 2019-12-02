@@ -7,6 +7,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <mutex>
+#include <assert.h>
 
 static char log_file[512] = {};
 static char tee_file[512] = {};
