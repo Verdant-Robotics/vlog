@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <time.h>
+#include <assert.h>
 
 // To add a new category or log level, please modify vlog.cpp the
 // static arrays log_levels and log_categories
@@ -36,12 +37,8 @@ enum LogLevel
   VL_FINEST = 50
 };
 
-inline double time_now() {
-  struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
-  double now = double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
-  return now;
-}
+void setSimTimeParams(double sim_start, double sim_ratio);
+double time_now();
 
 void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...)  __attribute__ (( format( printf, 7, 8 ) ));
 
@@ -94,6 +91,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
                 __func__,                                               \
                 "Assertion failed: " #expr __VA_ARGS__ );               \
       vlog_option_location = old_val;                                   \
+      assert(false);                                                    \
     }                                                                   \
   } while (0)                                                           
 
