@@ -9,6 +9,32 @@
 #include <mutex>
 #include <assert.h>
 
+static double time_sim_start = -1;
+static double time_sim_ratio = 1;
+static double time_real_start = -1;
+
+void setSimTimeParams(double sim_start, double sim_ratio)
+{
+  time_sim_ratio = sim_ratio;
+  time_real_start = time_now();
+  time_sim_start = sim_start;
+}
+
+double time_now() {
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  double now = double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+
+  if (time_sim_start < 0) {
+    return now;
+  } else {
+    double real_time_elapsed = now - time_real_start;
+    double real_time_scaled = real_time_elapsed/time_sim_ratio;
+    double sim_now = time_sim_start + real_time_scaled;
+    return sim_now;
+  }
+}
+
 static char log_file[512] = {};
 static char tee_file[512] = {};
 static char tee_opened_file[512] = {};
