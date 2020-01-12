@@ -85,7 +85,7 @@ static const struct log_levels {
   { "SEVERE",  "\e[31mSEVERE\e[m"   , VL_SEVERE  },
   { "ERROR",   "\e[31mERROR\e[m"    , VL_ERROR   },
   { "WARNING", "\e[33mWARNING\e[m"  , VL_WARNING },
-  { "INFO",          "INFO"         , VL_INFO    },
+  { "INFO",    "\e[0mINFO\e[0m"     , VL_INFO    },
   { "CONFIG",  "\e[34mCONFIG\e[m"   , VL_CONFIG  },
   { "DEBUG",   "\e[1mDEBUG\e[m"     , VL_DEBUG   },
   { "FINE",    "\e[32mFINE\e[m"     , VL_FINE    },
@@ -304,36 +304,38 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   }
 
   // Do the printing
-  if (newline) { ptr += sprintf(ptr, "\n"); }
-  if (vlog_option_print_level && (level != VL_ALWAYS)) {
-    ptr += sprintf(ptr, "%7s ", get_level_str(level));
-  }
-  if (vlog_option_print_category) {
-      bool found = false;
-      for(auto& elem: log_categories) {
-          if (elem.cat == category) {
-              ptr += sprintf(ptr, "[%7s] ", elem.str);
-              found = true;
-              break;
-          }
-      }
-      if (!found) {
-          ptr += sprintf(ptr, "[UNKNOWN] ");
-      }
-  }
-  if (vlog_option_timelog) {
-      if (vlog_option_time_date) {
-          // TODO: Not implemented so far
-      } else {
-         double now = time_now();
-         ptr += sprintf(ptr, "[%f] ", now);
-      }
-  }
-  if (vlog_option_thread_id) {
-    ptr += sprintf(ptr, "<%d> ", gettid());
-  }
-  if (vlog_option_location) {
-      ptr += sprintf(ptr, "%s:%d,{%s} ", file, line, func);
+  if (newline) { // only print the preamble if there is a newline
+    ptr += sprintf(ptr, "\n");
+    if (vlog_option_print_level && (level != VL_ALWAYS)) {
+      ptr += sprintf(ptr, "%10s ", get_level_str(level));
+    }
+    if (vlog_option_print_category) {
+        bool found = false;
+        for(auto& elem: log_categories) {
+            if (elem.cat == category) {
+                ptr += sprintf(ptr, "[%7s] ", elem.str);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            ptr += sprintf(ptr, "[UNKNOWN] ");
+        }
+    }
+    if (vlog_option_timelog) {
+        if (vlog_option_time_date) {
+            // TODO: Not implemented so far
+        } else {
+           double now = time_now();
+           ptr += sprintf(ptr, "[%f] ", now);
+        }
+    }
+    if (vlog_option_thread_id) {
+      ptr += sprintf(ptr, "<%d> ", gettid());
+    }
+    if (vlog_option_location) {
+        ptr += sprintf(ptr, "%s:%d,{%s} ", file, line, func);
+    }
   }
   ptr += vsprintf(ptr, fmt, args);
   va_end(args);
