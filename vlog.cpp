@@ -57,6 +57,37 @@ static std::recursive_mutex vlog_mutex;
 static FILE* log_stream = nullptr;
 static FILE* tee_stream = nullptr;
 
+#if ENABLE_BACKTRACE
+
+#include "backward/backward.h"
+#include "backward/callstack.h"
+
+static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
+{
+  // Assume all terminals supports ANSI colors
+  bool color = isatty( fileno( fp ) );
+
+  std::stringstream output;
+  PrintCallstack( output, st, color );
+
+  fprintf(log_stream, "%s", output.str().c_str());
+  fflush(log_stream);
+  if (tee_stream) {
+    fprintf(tee_stream, "%s", output.str().c_str());
+    fflush(tee_stream);
+  }
+}
+
+namespace backward
+{
+  PrintFunctionDef PrintFunction = SignalHandlerPrinter;
+}
+
+static backward::SignalHandling* shptr = nullptr;
+
+#endif // defined ENABLE_BACKTRACE
+
+
 static const struct log_categories {
     const char *str;
     enum LogCategory cat;
@@ -172,6 +203,10 @@ bool vlog_init()
 
       log_stream = stdout;
 
+#if ENABLE_BACKTRACE
+      shptr = new backward::SignalHandling();
+#endif // ENABLE_BACKTRACE
+
       char **env;
       for( env = environ; *env != nullptr; env++ ) {
           char* var = *env;
@@ -235,6 +270,13 @@ bool vlog_init()
 
 void vlog_fini()
 {
+#if ENABLE_BACKTRACE
+  if (shptr != nullptr) {
+    delete shptr;
+    shptr = nullptr;
+  }
+#endif // ENABLE_BACKTRACE
+
     // Close the handles we have
     if ((log_stream != stdout) && (log_stream != stderr)) {
         fclose(log_stream);
@@ -346,8 +388,20 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
     fflush(tee_stream);
   }
 
+
   if (vlog_option_exit_on_fatal && level == VL_FATAL) {
-    // TODO - print stack
+    // print stack
+#if ENABLE_BACKTRACE
+    std::stringstream out;
+    PrintCurrentCallstack(out, true, nullptr);
+    fprintf(log_stream, "\n%s\n", out.str().c_str());
+    fflush(log_stream);
+    if (tee_stream) {
+      fprintf(tee_stream, "\n%s\n", out.str().c_str());
+      fflush(tee_stream);
+    }
+#endif
+
     // TODO - add callback for cleaning up drivers, etc.
     fprintf(log_stream, "\n");
     fflush(log_stream);
