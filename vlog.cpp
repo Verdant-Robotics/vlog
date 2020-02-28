@@ -42,17 +42,17 @@ static char tee_opened_file[512] = {};
 static char sbuffer[4096];
 
 bool vlog_option_location =
-    false;  // Log the file, line, function for each message?
-bool vlog_option_thread_id = false;       // Log the thread id for each message?
-bool vlog_option_timelog = true;          // Log the time for each message?
-bool vlog_option_time_date = false;       // Date or timestamp in seconds
-bool vlog_option_print_category = false;  // Should the category be logged?
-bool vlog_option_print_level = true;      // Should the level be logged?
-char *vlog_option_file = log_file;        // where to log
+    false; // Log the file, line, function for each message?
+bool vlog_option_thread_id = false;      // Log the thread id for each message?
+bool vlog_option_timelog = true;         // Log the time for each message?
+bool vlog_option_time_date = false;      // Date or timestamp in seconds
+bool vlog_option_print_category = false; // Should the category be logged?
+bool vlog_option_print_level = true;     // Should the level be logged?
+char *vlog_option_file = log_file;       // where to log
 char *vlog_option_tee_file = tee_file;
-int vlog_option_level = VL_WARNING;  // Log level to use
+int vlog_option_level = VL_WARNING; // Log level to use
 unsigned int vlog_option_category =
-    0xFFFFFFFF;  // Log categories to use, bitfield
+    0xFFFFFFFF; // Log categories to use, bitfield
 bool vlog_option_exit_on_fatal = true;
 
 static bool vlog_init_done = false;
@@ -63,6 +63,37 @@ static FILE *tee_stream = nullptr;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 // clang-format off
+
+#if ENABLE_BACKTRACE
+
+#include "backward/backward.h"
+#include "backward/callstack.h"
+
+static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
+{
+  // Assume all terminals supports ANSI colors
+  bool color = isatty( fileno( fp ) );
+
+  std::stringstream output;
+  PrintCallstack( output, st, color );
+
+  fprintf(log_stream, "%s", output.str().c_str());
+  fflush(log_stream);
+  if (tee_stream) {
+    fprintf(tee_stream, "%s", output.str().c_str());
+    fflush(tee_stream);
+  }
+}
+
+namespace backward
+{
+  PrintFunctionDef PrintFunction = SignalHandlerPrinter;
+}
+
+static backward::SignalHandling* shptr = nullptr;
+
+#endif // defined ENABLE_BACKTRACE
+
 
 static const struct log_categories {
   const char *str;
@@ -142,7 +173,8 @@ static bool var_matches(const char *var, const char *opt) {
 
 static const char *getval(const char *var) {
   const char *r = var;
-  while ((*r != '=') && (*r != 0)) r++;
+  while ((*r != '=') && (*r != 0))
+    r++;
   return ++r;
 }
 
@@ -175,6 +207,10 @@ bool vlog_init() {
     vlog_init_done = true;
 
     log_stream = stdout;
+
+#if ENABLE_BACKTRACE
+    shptr = new backward::SignalHandling();
+#endif // ENABLE_BACKTRACE
 
     char **env;
     for (env = environ; *env != nullptr; env++) {
@@ -228,7 +264,7 @@ bool vlog_init() {
             }
           }
           if (mask != 0) {
-            mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
+            mask |= 1 << VCAT_ASSERT; // Always show assertion failures.
             vlog_option_category = mask;
           }
         }
@@ -239,6 +275,13 @@ bool vlog_init() {
 }
 
 void vlog_fini() {
+#if ENABLE_BACKTRACE
+  if (shptr != nullptr) {
+    delete shptr;
+    shptr = nullptr;
+  }
+#endif // ENABLE_BACKTRACE
+
   // Close the handles we have
   if ((log_stream != stdout) && (log_stream != stderr)) {
     fclose(log_stream);
@@ -302,7 +345,7 @@ void vlog_func(int level, int category, bool newline, const char *file,
   }
 
   // Do the printing
-  if (newline) {  // only print the preamble if there is a newline
+  if (newline) { // only print the preamble if there is a newline
     ptr += sprintf(ptr, "\n");
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
       ptr += sprintf(ptr, "%10s ", get_level_str(level));
@@ -345,16 +388,27 @@ void vlog_func(int level, int category, bool newline, const char *file,
   }
 
   if (vlog_option_exit_on_fatal && level == VL_FATAL) {
-    // TODO - print stack
+    // print stack
+#if ENABLE_BACKTRACE
+    std::stringstream out;
+    PrintCurrentCallstack(out, true, nullptr);
+    fprintf(log_stream, "\n%s\n", out.str().c_str());
+    fflush(log_stream);
+    if (tee_stream) {
+      fprintf(tee_stream, "\n%s\n", out.str().c_str());
+      fflush(tee_stream);
+    }
+#endif
+
     // TODO - add callback for cleaning up drivers, etc.
     fprintf(log_stream, "\n");
     fflush(log_stream);
-    assert(false);  // This helps break in the debugger
+    assert(false); // This helps break in the debugger
     exit(-1);
   }
 }
 
-void vlog_flush()  // Ensure all data is on disk
+void vlog_flush() // Ensure all data is on disk
 {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {

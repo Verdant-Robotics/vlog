@@ -37,6 +37,39 @@ enum LogLevel
   VL_FINEST = 50
 };
 
+/*
+   Environment variables to control logging:
+
+    VLOG_FILE -> stdout (default), stderr, <file path>
+       This variable controls where the logging is going
+
+    VLOG_SRC_LOCATION -> 1 , 0 (default)
+       This variable controls whether we print the file, line and function name where
+       the logging originated
+
+    VLOG_THREAD_ID -> 1 , 0 (default)
+       This variable controls the printing of the thread id that is logging
+
+    VLOG_TIME_LOG -> 1, 0 (default)
+       This variable controls whether a timestamp/date is included on each log
+
+    VLOG_TIME_FORMAT -> stamp (default), date
+       This variable controls if the log writes the time in date format or in timestamp (floating point number representing seconds)
+
+    VLOG_LEVEL -> ERROR (default), ...
+       This variable controls the level of logging, by default only error or more severe are printed. Numbers are also accepted.
+
+    VLOG_CATEGORY -> ALL (default), GENERAL, DETECT, ...
+       This variable controls which categories are printed. All is the default, but a comma separated list of categories can be added
+
+    VLOG_PRINT_CATEGORY -> 1, 0 (default)
+       This variable controls if the category is logged on each message
+
+    VLOG_PRINT_LEVEL -> 1 (default), 0
+       This variable controls if the level is logged on each message
+
+ */
+
 void setSimTimeParams(double sim_start, double sim_ratio);
 double time_now();
 
@@ -89,7 +122,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       vlog_option_location = true;                                      \
       vlog_func(VL_FATAL, VCAT_ASSERT, true, __FILE__, __LINE__,        \
                 __func__,                                               \
-                "Assertion failed: " #expr __VA_ARGS__ );               \
+                "Assertion failed: " #expr " " __VA_ARGS__ );           \
       vlog_option_location = old_val;                                   \
       assert(false);                                                    \
     }                                                                   \
