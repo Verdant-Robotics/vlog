@@ -8,7 +8,7 @@ constexpr size_t MAX_STACK_FRAMES = 64;
 
 namespace backward
 {
-struct StackTrace;
+  class StackTrace;
 };
 
 std::string GetCurrentCallstack( bool color = true );
