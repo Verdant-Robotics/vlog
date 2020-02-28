@@ -42,17 +42,17 @@ static char tee_opened_file[512] = {};
 static char sbuffer[4096];
 
 bool vlog_option_location =
-    false;  // Log the file, line, function for each message?
-bool vlog_option_thread_id = false;       // Log the thread id for each message?
-bool vlog_option_timelog = true;          // Log the time for each message?
-bool vlog_option_time_date = false;       // Date or timestamp in seconds
-bool vlog_option_print_category = false;  // Should the category be logged?
-bool vlog_option_print_level = true;      // Should the level be logged?
-char *vlog_option_file = log_file;        // where to log
+    false; // Log the file, line, function for each message?
+bool vlog_option_thread_id = false;      // Log the thread id for each message?
+bool vlog_option_timelog = true;         // Log the time for each message?
+bool vlog_option_time_date = false;      // Date or timestamp in seconds
+bool vlog_option_print_category = false; // Should the category be logged?
+bool vlog_option_print_level = true;     // Should the level be logged?
+char *vlog_option_file = log_file;       // where to log
 char *vlog_option_tee_file = tee_file;
-int vlog_option_level = VL_WARNING;  // Log level to use
+int vlog_option_level = VL_WARNING; // Log level to use
 unsigned int vlog_option_category =
-    0xFFFFFFFF;  // Log categories to use, bitfield
+    0xFFFFFFFF; // Log categories to use, bitfield
 bool vlog_option_exit_on_fatal = true;
 
 static bool vlog_init_done = false;
@@ -173,7 +173,8 @@ static bool var_matches(const char *var, const char *opt) {
 
 static const char *getval(const char *var) {
   const char *r = var;
-  while ((*r != '=') && (*r != 0)) r++;
+  while ((*r != '=') && (*r != 0))
+    r++;
   return ++r;
 }
 
@@ -203,76 +204,77 @@ void set_log_level_string(const char *level) {
 bool vlog_init() {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {
-      vlog_init_done = true;
+    vlog_init_done = true;
 
-      log_stream = stdout;
+    log_stream = stdout;
 
 #if ENABLE_BACKTRACE
-      shptr = new backward::SignalHandling();
+    shptr = new backward::SignalHandling();
 #endif // ENABLE_BACKTRACE
 
-      char **env;
-      for( env = environ; *env != nullptr; env++ ) {
-          char* var = *env;
-          const char *val = getval(var);
+    char **env;
+    for (env = environ; *env != nullptr; env++) {
+      char *var = *env;
+      const char *val = getval(var);
 
-          if (var_matches(var, "VLOG_FILE")) {
-              if (var_matches(val, "stdout")) {
-                  // Nothing to do, this is the default
-              } else if (var_matches(val, "stderr")) {
-                  log_stream = stderr;
-              } else {
-                  FILE *f = fopen(val, "w+");
-                  if (f != nullptr) {
-                      log_stream = f;
-                  } else {
-                      fprintf(stderr, "Could not log to file %s , logging to stdout\n", val);
-                  }
-              }
-          } else if (var_matches(var, "VLOG_EXIT_ON_FATAL")) {
-            vlog_option_exit_on_fatal = (*val == '1');
-          } else if (var_matches(var, "VLOG_SRC_LOCATION")) {
-            vlog_option_location = (*val == '1');
-          } else if (var_matches(var, "VLOG_THREAD_ID")) {
-            vlog_option_thread_id = (*val == '1');
-          } else if (var_matches(var, "VLOG_TIME_LOG")) {
-            vlog_option_timelog = (*val == '1');
-          } else if (var_matches(var, "VLOG_PRINT_CATEGORY")) {
-            vlog_option_print_category = (*val == '1');
-          } else if (var_matches(var, "VLOG_PRINT_LEVEL")) {
-            vlog_option_print_level = (*val == '1');
-          } else if (var_matches(var, "VLOG_TIME_FORMAT")) {
-              if (var_matches(val, "date")) {
-                  vlog_option_time_date = true;
-              } else if (var_matches(val, "stamp")) {
-                  vlog_option_time_date = false;
-              }
-          } else if (var_matches(var, "VLOG_LEVEL")) {
-              set_log_level_string(val);
-          } else if (var_matches(var, "VLOG_CATEGORY")) {
-              if (var_matches(val, "ALL")) {
-                  // Nothing to do, this is the default
-              } else {
-                  unsigned int mask = 0;
-                  for(auto& elem: log_categories) {
-                      if (strcasestr(val, elem.str)) {
-//                          printf("Setting vlog category to %s\n", elem.str);
-                          mask |= (1 << elem.cat);
-                      }
-                  }
-                  if (mask != 0) {
-                      mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
-                      vlog_option_category = mask;
-                  }
-              }
+      if (var_matches(var, "VLOG_FILE")) {
+        if (var_matches(val, "stdout")) {
+          // Nothing to do, this is the default
+        } else if (var_matches(val, "stderr")) {
+          log_stream = stderr;
+        } else {
+          FILE *f = fopen(val, "w+");
+          if (f != nullptr) {
+            log_stream = f;
+          } else {
+            fprintf(stderr, "Could not log to file %s , logging to stdout\n",
+                    val);
+          }
+        }
+      } else if (var_matches(var, "VLOG_EXIT_ON_FATAL")) {
+        vlog_option_exit_on_fatal = (*val == '1');
+      } else if (var_matches(var, "VLOG_SRC_LOCATION")) {
+        vlog_option_location = (*val == '1');
+      } else if (var_matches(var, "VLOG_THREAD_ID")) {
+        vlog_option_thread_id = (*val == '1');
+      } else if (var_matches(var, "VLOG_TIME_LOG")) {
+        vlog_option_timelog = (*val == '1');
+      } else if (var_matches(var, "VLOG_PRINT_CATEGORY")) {
+        vlog_option_print_category = (*val == '1');
+      } else if (var_matches(var, "VLOG_PRINT_LEVEL")) {
+        vlog_option_print_level = (*val == '1');
+      } else if (var_matches(var, "VLOG_TIME_FORMAT")) {
+        if (var_matches(val, "date")) {
+          vlog_option_time_date = true;
+        } else if (var_matches(val, "stamp")) {
+          vlog_option_time_date = false;
+        }
+      } else if (var_matches(var, "VLOG_LEVEL")) {
+        set_log_level_string(val);
+      } else if (var_matches(var, "VLOG_CATEGORY")) {
+        if (var_matches(val, "ALL")) {
+          // Nothing to do, this is the default
+        } else {
+          unsigned int mask = 0;
+          for (auto &elem : log_categories) {
+            if (strcasestr(val, elem.str)) {
+              //                          printf("Setting vlog category to
+              //                          %s\n", elem.str);
+              mask |= (1 << elem.cat);
+            }
+          }
+          if (mask != 0) {
+            mask |= 1 << VCAT_ASSERT; // Always show assertion failures.
+            vlog_option_category = mask;
           }
         }
       }
+    }
+  }
   return true;
 }
 
-void vlog_fini()
-{
+void vlog_fini() {
 #if ENABLE_BACKTRACE
   if (shptr != nullptr) {
     delete shptr;
@@ -280,10 +282,10 @@ void vlog_fini()
   }
 #endif // ENABLE_BACKTRACE
 
-    // Close the handles we have
-    if ((log_stream != stdout) && (log_stream != stderr)) {
-        fclose(log_stream);
-    }
+  // Close the handles we have
+  if ((log_stream != stdout) && (log_stream != stderr)) {
+    fclose(log_stream);
+  }
 }
 
 static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
@@ -343,7 +345,7 @@ void vlog_func(int level, int category, bool newline, const char *file,
   }
 
   // Do the printing
-  if (newline) {  // only print the preamble if there is a newline
+  if (newline) { // only print the preamble if there is a newline
     ptr += sprintf(ptr, "\n");
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
       ptr += sprintf(ptr, "%10s ", get_level_str(level));
@@ -385,7 +387,6 @@ void vlog_func(int level, int category, bool newline, const char *file,
     fflush(tee_stream);
   }
 
-
   if (vlog_option_exit_on_fatal && level == VL_FATAL) {
     // print stack
 #if ENABLE_BACKTRACE
@@ -402,12 +403,12 @@ void vlog_func(int level, int category, bool newline, const char *file,
     // TODO - add callback for cleaning up drivers, etc.
     fprintf(log_stream, "\n");
     fflush(log_stream);
-    assert(false);  // This helps break in the debugger
+    assert(false); // This helps break in the debugger
     exit(-1);
   }
 }
 
-void vlog_flush()  // Ensure all data is on disk
+void vlog_flush() // Ensure all data is on disk
 {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {

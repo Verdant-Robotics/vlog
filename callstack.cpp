@@ -28,7 +28,7 @@ static bool EndsWith( const std::string_view text, const std::string_view suffix
 
 static bool ShouldSkipFrame( const backward::ResolvedTrace& tr )
 {
-  static const std::vector<std::string> debugFiles = {"/backward.hpp", "/callstack.hpp"};
+  static const std::vector<std::string> debugFiles = {"/backward.h", "/callstack.cpp"};
   return std::any_of( debugFiles.begin(), debugFiles.end(),
                       [&tr]( const std::string& file ) { return EndsWith( tr.source.filename, file ); } );
 }
