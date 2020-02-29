@@ -182,7 +182,7 @@ void set_log_level_string(const char *level) {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   bool found = false;
   for (auto &elem : log_levels) {
-    if (var_matches(level, elem.str)) {
+    if (!strcasecmp(level, elem.str)) {
       vlog_option_level = elem.lvl;
       //        printf("Setting vlog level to %s\n", elem.str);
       found = true;
