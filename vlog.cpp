@@ -54,6 +54,7 @@ int vlog_option_level = VL_WARNING; // Log level to use
 unsigned int vlog_option_category =
     0xFFFFFFFF; // Log categories to use, bitfield
 bool vlog_option_exit_on_fatal = true;
+bool vlog_option_color = true;
 
 static bool vlog_init_done = false;
 static std::recursive_mutex vlog_mutex;
@@ -74,6 +75,9 @@ static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
   // Assume all terminals supports ANSI colors
   bool color = isatty( fileno( log_stream ) );
 
+  if (!vlog_option_color) {
+    color = false;
+  }
   std::stringstream output;
   PrintCallstack( output, st, color );
 
@@ -165,6 +169,9 @@ const char *vlog_vars =
 
     VLOG_PRINT_LEVEL -> 1 (default), 0
        This variable controls if the level is logged on each message
+
+    VLOG_COLOR -> 1 (default), 0
+       This variable controls if we print color, useful for CI
 )";
 
 static bool var_matches(const char *var, const char *opt) {
@@ -243,6 +250,8 @@ bool vlog_init() {
         vlog_option_print_category = (*val == '1');
       } else if (var_matches(var, "VLOG_PRINT_LEVEL")) {
         vlog_option_print_level = (*val == '1');
+      } else if (var_matches(var, "VLOG_COLOR")) {
+        vlog_option_color = (*val == '1');
       } else if (var_matches(var, "VLOG_TIME_FORMAT")) {
         if (var_matches(val, "date")) {
           vlog_option_time_date = true;

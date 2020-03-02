@@ -68,6 +68,8 @@ enum LogLevel
     VLOG_PRINT_LEVEL -> 1 (default), 0
        This variable controls if the level is logged on each message
 
+    VLOG_COLOR -> 1 (default), 0
+       This variable controls if we print color, useful for CI
  */
 
 void setSimTimeParams(double sim_start, double sim_ratio);
