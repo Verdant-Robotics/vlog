@@ -71,7 +71,7 @@ static void PrintSnippet( std::ostream& output, bool color, const backward::Snip
 std::string GetCurrentCallstack( bool color )
 {
   std::stringstream stack;
-  PrintCurrentCallstack( stack );
+  PrintCurrentCallstack( stack, color );
   return stack.str();
 }
 

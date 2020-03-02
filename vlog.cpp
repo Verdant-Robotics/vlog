@@ -72,15 +72,15 @@ static FILE *tee_stream = nullptr;
 static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
 {
   // Assume all terminals supports ANSI colors
-  bool color = isatty( fileno( fp ) );
+  bool color = isatty( fileno( log_stream ) );
 
   std::stringstream output;
   PrintCallstack( output, st, color );
 
-  fprintf(log_stream, "\n\x1B[1;31mSTACK\x1B[m %s", output.str().c_str());
+  fprintf(log_stream, "\nSTACK %s", output.str().c_str());
   fflush(log_stream);
   if (tee_stream) {
-    fprintf(tee_stream, "\n\x1B[1;31mSTACK\x1B[m %s", output.str().c_str());
+    fprintf(tee_stream, "\nSTACK %s", output.str().c_str());
     fflush(tee_stream);
   }
 }
