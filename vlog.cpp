@@ -355,7 +355,6 @@ void vlog_func(int level, int category, bool newline, const char *file,
 
   // Do the printing
   if (newline) { // only print the preamble if there is a newline
-    ptr += sprintf(ptr, "\n");
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
       ptr += sprintf(ptr, "%10s ", get_level_str(level));
     }
@@ -389,6 +388,9 @@ void vlog_func(int level, int category, bool newline, const char *file,
   }
   ptr += vsprintf(ptr, fmt, args);
   va_end(args);
+  if (newline) {
+    ptr += sprintf(ptr, "\n");
+  }
   fprintf(log_stream, "%s", sbuffer);
   fflush(log_stream);
   if (tee_stream) {
@@ -410,7 +412,6 @@ void vlog_func(int level, int category, bool newline, const char *file,
 #endif
 
     // TODO - add callback for cleaning up drivers, etc.
-    fprintf(log_stream, "\n");
     fflush(log_stream);
     assert(false); // This helps break in the debugger
     exit(-1);
