@@ -402,13 +402,15 @@ void vlog_func(int level, int category, bool newline, const char *file,
     // print stack
 #if ENABLE_BACKTRACE
     std::stringstream out;
-    PrintCurrentCallstack(out, true, nullptr);
+    PrintCurrentCallstack(out, true, nullptr, 4);
     fprintf(log_stream, "\n%s\n", out.str().c_str());
     fflush(log_stream);
     if (tee_stream) {
       fprintf(tee_stream, "\n%s\n", out.str().c_str());
       fflush(tee_stream);
     }
+    // Unregister the backtrace SIGABRT signal handler so we don't print two stack traces
+    signal(SIGABRT, SIG_DFL);
 #endif
 
     // TODO - add callback for cleaning up drivers, etc.
