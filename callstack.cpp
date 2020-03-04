@@ -75,7 +75,7 @@ std::string GetCurrentCallstack( bool color )
   return stack.str();
 }
 
-void PrintCurrentCallstack( std::ostream& output, bool color, siginfo_t* info )
+void PrintCurrentCallstack( std::ostream& output, bool color, siginfo_t* info, size_t skipFrames )
 {
   backward::StackTrace st;
   if ( info == nullptr ) {
@@ -83,6 +83,7 @@ void PrintCurrentCallstack( std::ostream& output, bool color, siginfo_t* info )
   } else {
     st.load_from( info->si_addr, MAX_STACK_FRAMES );
   }
+  if (skipFrames > 0) st.skip_n_firsts(skipFrames);
   PrintCallstack( output, st, color );
 }
 
