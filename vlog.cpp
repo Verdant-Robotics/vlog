@@ -402,7 +402,7 @@ void vlog_func(int level, int category, bool newline, const char *file,
     // print stack
 #if ENABLE_BACKTRACE
     std::stringstream out;
-    PrintCurrentCallstack(out, true, nullptr, 4);
+    PrintCurrentCallstack(out, true, nullptr, 2);
     fprintf(log_stream, "\n%s\n", out.str().c_str());
     fflush(log_stream);
     if (tee_stream) {
