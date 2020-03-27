@@ -14,11 +14,16 @@
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
 static double time_real_start = -1;
+static std::atomic<double> sim_time = -1.0;
 
 void setSimTimeParams(double sim_start, double sim_ratio) {
   time_sim_ratio = sim_ratio;
   time_real_start = time_now();
   time_sim_start = sim_start;
+}
+
+void set_sim_time(double t) {
+  sim_time = t;
 }
 
 double time_now() {
@@ -29,6 +34,10 @@ double time_now() {
   if (time_sim_start < 0) {
     return now;
   } else {
+    if(sim_time > 0.0) {
+      return sim_time;
+    }
+
     double real_time_elapsed = now - time_real_start;
     double real_time_scaled = real_time_elapsed / time_sim_ratio;
     double sim_now = time_sim_start + real_time_scaled;
