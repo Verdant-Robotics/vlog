@@ -2,7 +2,14 @@
 
 #include <stdarg.h>
 #include <time.h>
+
+#if defined(NDEBUG)
+#undef NDEBUG
 #include <assert.h>
+#define NDEBUG
+#else
+#include <assert.h>
+#endif
 
 // To add a new category or log level, please modify vlog.cpp the
 // static arrays log_levels and log_categories
