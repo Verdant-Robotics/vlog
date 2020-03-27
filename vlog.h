@@ -2,7 +2,14 @@
 
 #include <stdarg.h>
 #include <time.h>
+
+#if defined(NDEBUG)
+#undef NDEBUG
 #include <assert.h>
+#define NDEBUG
+#else
+#include <assert.h>
+#endif
 
 // To add a new category or log level, please modify vlog.cpp the
 // static arrays log_levels and log_categories
@@ -127,8 +134,6 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
                 "Assertion failed: " #expr " " __VA_ARGS__ );           \
       vlog_option_location = old_val;                                   \
       assert(false);                                                    \
-      int *a = 0;                                                       \
-      *a = 1;                                                           \
     }                                                                   \
   } while (0)                                                           
 
