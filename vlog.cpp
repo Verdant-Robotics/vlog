@@ -416,6 +416,9 @@ void vlog_func(int level, int category, bool newline, const char *file,
     // TODO - add callback for cleaning up drivers, etc.
     fflush(log_stream);
     assert(false); // This helps break in the debugger
+    // For ReleaseWithDebugInfo, this is how we can ensure the debugger stops here
+    int *a = 0;
+    *a = 1;
     exit(-1);
   }
 }

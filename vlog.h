@@ -127,6 +127,8 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
                 "Assertion failed: " #expr " " __VA_ARGS__ );           \
       vlog_option_location = old_val;                                   \
       assert(false);                                                    \
+      int *a = 0;                                                       \
+      *a = 1;                                                           \
     }                                                                   \
   } while (0)                                                           
 
