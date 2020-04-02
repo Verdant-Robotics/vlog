@@ -50,9 +50,8 @@ volatile bool vlog_option_print_category = false; // Should the category be logg
 volatile bool vlog_option_print_level = true;     // Should the level be logged?
 volatile char *vlog_option_file = log_file;       // where to log
 volatile char *vlog_option_tee_file = tee_file;
-volatile int vlog_option_level = VL_WARNING; // Log level to use
-volatile unsigned int vlog_option_category =
-    0xFFFFFFFF; // Log categories to use, bitfield
+int vlog_option_level = VL_WARNING; // Log level to use
+unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfield
 volatile bool vlog_option_exit_on_fatal = true;
 volatile bool vlog_option_color = true;
 
@@ -60,6 +59,26 @@ static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
 static FILE *log_stream = nullptr;
 static FILE *tee_stream = nullptr;
+
+int getOptionLevel()
+{
+  return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST);
+}
+
+void setOptionLevel(int level)
+{
+  __atomic_store_n(&vlog_option_level, level, __ATOMIC_SEQ_CST);
+}
+
+int getOptionCategory()
+{
+  return __atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST);
+}
+
+void setOptionCategory(int cat)
+{
+  __atomic_store_n(&vlog_option_category, cat, __ATOMIC_SEQ_CST);
+}
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
@@ -190,7 +209,7 @@ void set_log_level_string(const char *level) {
   bool found = false;
   for (auto &elem : log_levels) {
     if (!strcasecmp(level, elem.str)) {
-      vlog_option_level = elem.lvl;
+      setOptionLevel(elem.lvl);
       //        printf("Setting vlog level to %s\n", elem.str);
       found = true;
       break;
@@ -198,11 +217,11 @@ void set_log_level_string(const char *level) {
   }
   if (!found) {
     if (*level == '0') {
-      vlog_option_level = 0;
+      setOptionLevel(0);
     } else {
       int converted_val = atoi(level);
       if (converted_val != 0) {
-        vlog_option_level = converted_val;
+        setOptionLevel(converted_val);
       }
     }
   }
@@ -274,7 +293,7 @@ bool vlog_init() {
           }
           if (mask != 0) {
             mask |= 1 << VCAT_ASSERT; // Always show assertion failures.
-            vlog_option_category = mask;
+            setOptionCategory(mask);
           }
         }
       }
@@ -300,7 +319,7 @@ void vlog_fini() {
 static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
 
 static inline bool match_category(int category) {
-  return (vlog_option_category & (1 << category)) != 0;
+  return (getOptionCategory() & (1 << category)) != 0;
 }
 
 static const char *get_level_str(int level) {
@@ -326,7 +345,7 @@ void vlog_func(int level, int category, bool newline, const char *file,
     vlog_init();
   }
 
-  if (level > vlog_option_level) {
+  if (level > getOptionLevel()) {
     va_end(args);
     return;
   }

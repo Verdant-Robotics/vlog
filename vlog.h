@@ -153,8 +153,8 @@ extern volatile bool vlog_option_print_category; // Should the category be logge
 extern volatile bool vlog_option_print_level; // Should the level be logged?
 extern volatile char* vlog_option_file;     // where to log
 extern volatile char* vlog_option_tee_file; // File where to log simultaneously
-extern volatile int vlog_option_level;      // Log level to use
-extern volatile unsigned int vlog_option_category;   // Log categories to use, bitfield
+extern int vlog_option_level;      // Log level to use
+extern unsigned int vlog_option_category;   // Log categories to use, bitfield
 extern volatile bool vlog_option_exit_on_fatal; // Call exit after a vlog_fatal
 extern volatile bool vlog_option_color; // Display color in terminal or not
 
