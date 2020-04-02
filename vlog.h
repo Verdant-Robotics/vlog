@@ -145,18 +145,18 @@ void set_log_level_string(const char *level);
 
 // These variables are for manual setting of logging before init
 
-extern bool vlog_option_location;  // Log the file, line, function for each message?
-extern bool vlog_option_thread_id; // Log the thread id for each message?
-extern bool vlog_option_timelog;   // Log the time for each message?
-extern bool vlog_option_time_date; // Date or timestamp in seconds
-extern bool vlog_option_print_category; // Should the category be logged?
-extern bool vlog_option_print_level; // Should the level be logged?
-extern char* vlog_option_file;     // where to log
-extern char* vlog_option_tee_file; // File where to log simultaneously
-extern int vlog_option_level;      // Log level to use
-extern unsigned int vlog_option_category;   // Log categories to use, bitfield
-extern bool vlog_option_exit_on_fatal; // Call exit after a vlog_fatal
-extern bool vlog_option_color; // Display color in terminal or not
+extern volatile bool vlog_option_location;  // Log the file, line, function for each message?
+extern volatile bool vlog_option_thread_id; // Log the thread id for each message?
+extern volatile bool vlog_option_timelog;   // Log the time for each message?
+extern volatile bool vlog_option_time_date; // Date or timestamp in seconds
+extern volatile bool vlog_option_print_category; // Should the category be logged?
+extern volatile bool vlog_option_print_level; // Should the level be logged?
+extern volatile char* vlog_option_file;     // where to log
+extern volatile char* vlog_option_tee_file; // File where to log simultaneously
+extern volatile int vlog_option_level;      // Log level to use
+extern volatile unsigned int vlog_option_category;   // Log categories to use, bitfield
+extern volatile bool vlog_option_exit_on_fatal; // Call exit after a vlog_fatal
+extern volatile bool vlog_option_color; // Display color in terminal or not
 
 extern const char* vlog_vars; // Use this variable to print help on vlog if needed
 

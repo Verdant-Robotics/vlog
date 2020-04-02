@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <mutex>
 
 static double time_sim_start = -1;
@@ -40,22 +41,22 @@ static char tee_file[512] = {};
 static char tee_opened_file[512] = {};
 static char sbuffer[4096];
 
-bool vlog_option_location =
+volatile bool vlog_option_location =
     false; // Log the file, line, function for each message?
-bool vlog_option_thread_id = false;      // Log the thread id for each message?
-bool vlog_option_timelog = true;         // Log the time for each message?
-bool vlog_option_time_date = false;      // Date or timestamp in seconds
-bool vlog_option_print_category = false; // Should the category be logged?
-bool vlog_option_print_level = true;     // Should the level be logged?
-char *vlog_option_file = log_file;       // where to log
-char *vlog_option_tee_file = tee_file;
-int vlog_option_level = VL_WARNING; // Log level to use
-unsigned int vlog_option_category =
+volatile bool vlog_option_thread_id = false;      // Log the thread id for each message?
+volatile bool vlog_option_timelog = true;         // Log the time for each message?
+volatile bool vlog_option_time_date = false;      // Date or timestamp in seconds
+volatile bool vlog_option_print_category = false; // Should the category be logged?
+volatile bool vlog_option_print_level = true;     // Should the level be logged?
+volatile char *vlog_option_file = log_file;       // where to log
+volatile char *vlog_option_tee_file = tee_file;
+volatile int vlog_option_level = VL_WARNING; // Log level to use
+volatile unsigned int vlog_option_category =
     0xFFFFFFFF; // Log categories to use, bitfield
-bool vlog_option_exit_on_fatal = true;
-bool vlog_option_color = true;
+volatile bool vlog_option_exit_on_fatal = true;
+volatile bool vlog_option_color = true;
 
-static bool vlog_init_done = false;
+static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
 static FILE *log_stream = nullptr;
 static FILE *tee_stream = nullptr;
