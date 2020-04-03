@@ -160,3 +160,7 @@ extern volatile bool vlog_option_color; // Display color in terminal or not
 
 extern const char* vlog_vars; // Use this variable to print help on vlog if needed
 
+int getOptionLevel();
+void setOptionLevel(int level);
+int getOptionCategory();
+void setOptionCategory(int cat);
