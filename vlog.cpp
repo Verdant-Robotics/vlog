@@ -230,8 +230,6 @@ void set_log_level_string(const char *level) {
 bool vlog_init() {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {
-    vlog_init_done = true;
-
     log_stream = stdout;
 
 #if ENABLE_BACKTRACE
@@ -298,6 +296,7 @@ bool vlog_init() {
         }
       }
     }
+    vlog_init_done = true;
   }
   return true;
 }
