@@ -80,6 +80,16 @@ enum LogLevel
  */
 
 void setSimTimeParams(double sim_start, double sim_ratio);
+
+/// set_sim_time is used in situations where simulation time is completely
+/// dictated by the application, and not tied to a uniform monotonically increasing
+/// clock.
+/// e.g. Replayer might use this to set the time based on consecutive message timestamps
+/// this mode allows more control of sim time.
+///
+/// \note when set_sim_time is used time will only be updated every time set_sim_time is called
+/// instead of increading uniformly according to the system clock
+void set_sim_time(double t);
 double time_now();
 
 void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...)  __attribute__ (( format( printf, 7, 8 ) ));
