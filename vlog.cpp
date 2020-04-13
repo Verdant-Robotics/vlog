@@ -143,6 +143,8 @@ static const struct log_categories {
   { "ASSERT" , VCAT_ASSERT  },
   { "VID"    , VCAT_VID     },
   { "DB"     , VCAT_DB      },
+  { "DB_READ", VCAT_DB_READ },
+  { "DB_WRITE", VCAT_DB_WRITE},    
 };
 
 static const struct log_levels {

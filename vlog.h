@@ -26,7 +26,9 @@ enum LogCategory
   VCAT_NODE,
   VCAT_ASSERT,
   VCAT_VID,
-  VCAT_DB
+  VCAT_DB,
+  VCAT_DB_READ,
+  VCAT_DB_WRITE,
 };
 
 enum LogLevel
