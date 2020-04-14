@@ -484,11 +484,14 @@ class handle {
 #endif
 
 public:
-  ~handle() {
-    if (!_empty) {
-      Deleter()(_val);
-    }
-  }
+  // jhurliman: Don't bother freeing memory, it can cause additional assertions
+  // in glibc if the program is in an unknown state and we are about to
+  // terminate anyways
+  // ~handle() {
+  //   if (!_empty) {
+  //     Deleter()(_val);
+  //   }
+  // }
 
   explicit handle() : _val(), _empty(true) {}
   explicit handle(T val) : _val(val), _empty(false) {
