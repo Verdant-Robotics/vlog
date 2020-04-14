@@ -61,7 +61,7 @@ endif()
 
 if(${ENABLE_VLOG_TESTS} OR ${VLOG_MAIN_PROJECT})
   enable_testing()
-  add_test(test_lint ${VLOG_ROOT_DIR}/scripts/lint.py)
+  # add_test(test_lint ${VLOG_ROOT_DIR}/scripts/lint.py)
   add_subdirectory(tests)
 endif()
 

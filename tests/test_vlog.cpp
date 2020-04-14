@@ -105,11 +105,15 @@ TEST(TestVLog, Fatal) {
   EXPECT_TRUE(Contains(crash, "vlog_fatal(VCAT_GENERAL"));
   EXPECT_TRUE(Contains(crash, "TestVLog_Fatal_Test::TestBody()"));
   EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
+
+  if (!Contains(crash, "vlog_fatal(VCAT_GENERAL")) {
+    std::cout << "Captured Output:\n" << crash << '\n';
+  }
 }
 
 TEST(TestVLog, Assert) {
   testing::internal::CaptureStdout();
-  #pragma clang diagnostic push
+#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wused-but-marked-unused"
 #pragma clang diagnostic ignored "-Wcovered-switch-default"
   // clang-format off
@@ -123,6 +127,10 @@ TEST(TestVLog, Assert) {
   EXPECT_TRUE(Contains(crash, "VLOG_ASSERT("));
   EXPECT_TRUE(Contains(crash, "TestVLog_Assert_Test::TestBody()"));
   EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
+
+  if (!Contains(crash, "VLOG_ASSERT(")) {
+    std::cout << "Captured Output:\n" << crash << '\n';
+  }
 }
 
 int main(int argc, char** argv) {
