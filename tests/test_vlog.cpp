@@ -2,8 +2,6 @@
 
 #include "vlog.h"
 
-static const std::string TOKEN = "3364e2a3-ae5a-4e0a-ab92-36deb0ceb332";
-
 static bool Contains(const std::string_view haystack, const std::string_view needle) {
   return haystack.find(needle) != std::string::npos;
 }
@@ -23,6 +21,8 @@ TEST(TestVLog, StartStop) {
 }
 
 TEST(TestVLog, NonFatalLevels) {
+  const std::string TOKEN = "3364e2a3-ae5a-4e0a-ab92-36deb0ceb332";
+
   testing::internal::CaptureStdout();
   vlog_error(VCAT_GENERAL, "%s", TOKEN.c_str());
   const std::string output = testing::internal::GetCapturedStdout();
@@ -83,6 +83,8 @@ TEST(TestVLog, NonFatalLevels) {
 }
 
 TEST(TestVLog, Fatal) {
+  const std::string TOKEN = "d08206d9-211f-4a16-a7de-14417a8df699";
+
   vlog_option_exit_on_fatal = false;
 
   testing::internal::CaptureStdout();
@@ -112,6 +114,8 @@ TEST(TestVLog, Fatal) {
 }
 
 TEST(TestVLog, Assert) {
+  const std::string TOKEN = "1ecdf1cb-7524-41b9-b048-280db1f2cb44";
+
   testing::internal::CaptureStdout();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wused-but-marked-unused"

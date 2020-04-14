@@ -21,21 +21,8 @@ set(CMAKE_CXX_FLAGS
     -Wno-c++98-compat \
     -Wno-c++98-compat-pedantic \
     -Wno-global-constructors \
-    -Wno-exit-time-destructors \
     -Wno-double-promotion \
-    -Wno-undef \
-    -Wno-padded \
-    -Wno-shorten-64-to-32 \
-    -Wno-old-style-cast \
-    -Wno-sign-conversion \
-    -Wno-conditional-uninitialized \
-    -Wno-unused-parameter \
-    -Wno-sign-conversion \
-    -Wno-extra-semi-stmt \
-    -Wno-weak-vtables \
-    -Wno-disabled-macro-expansion \
-    -Wno-zero-as-null-pointer-constant \
-    -Wno-gnu-zero-variadic-macro-arguments")
+    -Wno-padded")
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
   set(VLOG_MAIN_PROJECT TRUE)
