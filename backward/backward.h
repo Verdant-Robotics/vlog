@@ -28,6 +28,18 @@
 #error "It's not going to compile without a C++ compiler..."
 #endif
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundef"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 #if defined(BACKWARD_CXX11)
 #elif defined(BACKWARD_CXX98)
 #else
@@ -2826,7 +2838,7 @@ private:
 
         trace.inliners.push_back(sloc);
         break;
-      };
+      }
     }
     ResolvedTrace &trace;
     dwarf_fileobject &fobj;
@@ -2857,7 +2869,7 @@ private:
         if (die_has_pc(fobj, current_die, pc)) {
           return current_die;
         }
-      };
+      }
       bool declaration = false;
       Dwarf_Attribute attr_mem;
       if (dwarf_attr(current_die, DW_AT_declaration, &attr_mem, &error) ==
@@ -3030,7 +3042,7 @@ private:
     Dwarf_Arange *aranges;
     Dwarf_Signed arange_count;
 
-    Dwarf_Die returnDie;
+    Dwarf_Die returnDie = 0;
     bool found = false;
     if (dwarf_get_aranges(dwarf, &aranges, &arange_count, &error) !=
         DW_DLV_OK) {
@@ -3100,7 +3112,7 @@ private:
 
     // We couldn't find any compilation units with ranges or a high/low pc.
     // Try again by looking at all DIEs in all compilation units.
-    Dwarf_Die cudie;
+    Dwarf_Die cudie = 0;
     while (dwarf_next_cu_header_d(dwarf, 1, 0, 0, 0, 0, 0, 0, 0, 0,
                                   &next_cu_header, 0, &error) == DW_DLV_OK) {
       if (dwarf_siblingof(dwarf, 0, &cudie, &error) == DW_DLV_OK) {
@@ -3527,7 +3539,7 @@ enum type { automatic, never, always };
 class cfile_streambuf : public std::streambuf {
 public:
   cfile_streambuf(FILE *_sink) : sink(_sink) {}
-  int_type underflow() override { return traits_type::eof(); }
+  int_type underflow() override;
   int_type overflow(int_type ch) override {
     if (traits_type::not_eof(ch) && fwrite(&ch, sizeof ch, 1, sink) == 1) {
       return ch;
@@ -4103,5 +4115,9 @@ public:
 #endif // BACKWARD_SYSTEM_UNKNOWN
 
 } // namespace backward
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #endif /* H_GUARD */

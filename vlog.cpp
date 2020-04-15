@@ -22,9 +22,7 @@ void setSimTimeParams(double sim_start, double sim_ratio) {
   time_sim_start = sim_start;
 }
 
-void set_sim_time(double t) {
-  sim_time = t;
-}
+void set_sim_time(double t) { sim_time = t; }
 
 double time_now() {
   struct timespec ts;
@@ -34,7 +32,7 @@ double time_now() {
   if (time_sim_start < 0) {
     return now;
   } else {
-    if(sim_time > 0.0) {
+    if (sim_time > 0.0) {
       return sim_time;
     }
 
@@ -50,17 +48,16 @@ static char tee_file[512] = {};
 static char tee_opened_file[512] = {};
 static char sbuffer[4096];
 
-volatile bool vlog_option_location =
-    false; // Log the file, line, function for each message?
-volatile bool vlog_option_thread_id = false;      // Log the thread id for each message?
-volatile bool vlog_option_timelog = true;         // Log the time for each message?
-volatile bool vlog_option_time_date = false;      // Date or timestamp in seconds
-volatile bool vlog_option_print_category = false; // Should the category be logged?
-volatile bool vlog_option_print_level = true;     // Should the level be logged?
-volatile char *vlog_option_file = log_file;       // where to log
+volatile bool vlog_option_location = false;        // Log the file, line, function for each message?
+volatile bool vlog_option_thread_id = false;       // Log the thread id for each message?
+volatile bool vlog_option_timelog = true;          // Log the time for each message?
+volatile bool vlog_option_time_date = false;       // Date or timestamp in seconds
+volatile bool vlog_option_print_category = false;  // Should the category be logged?
+volatile bool vlog_option_print_level = true;      // Should the level be logged?
+volatile char *vlog_option_file = log_file;        // where to log
 volatile char *vlog_option_tee_file = tee_file;
-int vlog_option_level = VL_INFO; // Log level to use
-unsigned int vlog_option_category = 0xFFFFFFFF; // Log categories to use, bitfield
+int vlog_option_level = VL_INFO;                 // Log level to use
+unsigned int vlog_option_category = 0xFFFFFFFF;  // Log categories to use, bitfield
 volatile bool vlog_option_exit_on_fatal = true;
 volatile bool vlog_option_color = true;
 
@@ -69,25 +66,13 @@ static std::recursive_mutex vlog_mutex;
 static FILE *log_stream = nullptr;
 static FILE *tee_stream = nullptr;
 
-int getOptionLevel()
-{
-  return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST);
-}
+int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
-void setOptionLevel(int level)
-{
-  __atomic_store_n(&vlog_option_level, level, __ATOMIC_SEQ_CST);
-}
+void setOptionLevel(int level) { __atomic_store_n(&vlog_option_level, level, __ATOMIC_SEQ_CST); }
 
-int getOptionCategory()
-{
-  return __atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST);
-}
+int getOptionCategory() { return int(__atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST)); }
 
-void setOptionCategory(int cat)
-{
-  __atomic_store_n(&vlog_option_category, cat, __ATOMIC_SEQ_CST);
-}
+void setOptionCategory(int cat) { __atomic_store_n(&vlog_option_category, uint(cat), __ATOMIC_SEQ_CST); }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
@@ -98,7 +83,7 @@ void setOptionCategory(int cat)
 #include "backward/backward.h"
 #include "backward/callstack.h"
 
-static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
+static void SignalHandlerPrinter( backward::StackTrace& st, [[maybe_unused]] FILE* fp )
 {
   // Assume all terminals supports ANSI colors
   bool color = isatty( fileno( log_stream ) );
@@ -117,10 +102,12 @@ static void SignalHandlerPrinter( backward::StackTrace& st, FILE* fp )
   }
 }
 
-namespace backward
-{
-  PrintFunctionDef PrintFunction = SignalHandlerPrinter;
-}
+namespace backward {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+PrintFunctionDef PrintFunction = SignalHandlerPrinter;
+#pragma clang diagnostic pop
+}  // namespace backward
 
 static backward::SignalHandling* shptr = nullptr;
 
@@ -204,14 +191,11 @@ const char *vlog_vars =
        This variable controls if we print color, useful for CI
 )";
 
-static bool var_matches(const char *var, const char *opt) {
-  return strncasecmp(var, opt, strlen(opt)) == 0;
-}
+static bool var_matches(const char *var, const char *opt) { return strncasecmp(var, opt, strlen(opt)) == 0; }
 
 static const char *getval(const char *var) {
   const char *r = var;
-  while ((*r != '=') && (*r != 0))
-    r++;
+  while ((*r != '=') && (*r != 0)) r++;
   return ++r;
 }
 
@@ -245,7 +229,7 @@ bool vlog_init() {
 
 #if ENABLE_BACKTRACE
     shptr = new backward::SignalHandling();
-#endif // ENABLE_BACKTRACE
+#endif  // ENABLE_BACKTRACE
 
     char **env;
     for (env = environ; *env != nullptr; env++) {
@@ -262,8 +246,7 @@ bool vlog_init() {
           if (f != nullptr) {
             log_stream = f;
           } else {
-            fprintf(stderr, "Could not log to file %s , logging to stdout\n",
-                    val);
+            fprintf(stderr, "Could not log to file %s , logging to stdout\n", val);
           }
         }
       } else if (var_matches(var, "VLOG_EXIT_ON_FATAL")) {
@@ -301,8 +284,8 @@ bool vlog_init() {
             }
           }
           if (mask != 0) {
-            mask |= 1 << VCAT_ASSERT; // Always show assertion failures.
-            setOptionCategory(mask);
+            mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
+            setOptionCategory(int(mask));
           }
         }
       }
@@ -318,7 +301,7 @@ void vlog_fini() {
     delete shptr;
     shptr = nullptr;
   }
-#endif // ENABLE_BACKTRACE
+#endif  // ENABLE_BACKTRACE
 
   // Close the handles we have
   if ((log_stream != stdout) && (log_stream != stderr)) {
@@ -328,9 +311,7 @@ void vlog_fini() {
 
 static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
 
-static inline bool match_category(int category) {
-  return (getOptionCategory() & (1 << category)) != 0;
-}
+static inline bool match_category(int category) { return (getOptionCategory() & (1 << category)) != 0; }
 
 static const char *get_level_str(int level) {
   for (auto &elem : log_levels) {
@@ -344,8 +325,8 @@ static const char *get_level_str(int level) {
   return buf;
 }
 
-void vlog_func(int level, int category, bool newline, const char *file,
-               int line, const char *func, const char *fmt, ...) {
+void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func,
+               const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   char *ptr = sbuffer;
@@ -383,7 +364,7 @@ void vlog_func(int level, int category, bool newline, const char *file,
   }
 
   // Do the printing
-  if (newline) { // only print the preamble if there is a newline
+  if (newline) {  // only print the preamble if there is a newline
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
       ptr += sprintf(ptr, "%10s ", get_level_str(level));
     }
@@ -444,12 +425,12 @@ void vlog_func(int level, int category, bool newline, const char *file,
 
     // TODO - add callback for cleaning up drivers, etc.
     fflush(log_stream);
-    assert(false); // This helps break in the debugger
+    assert(false);  // This helps break in the debugger
     exit(-1);
   }
 }
 
-void vlog_flush() // Ensure all data is on disk
+void vlog_flush()  // Ensure all data is on disk
 {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   if (!vlog_init_done) {
