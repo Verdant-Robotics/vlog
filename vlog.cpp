@@ -330,7 +330,6 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   va_list args;
   va_start(args, fmt);
   char *ptr = sbuffer;
-  *ptr = 0;
 
   if (!vlog_init_done) {
     vlog_init();
@@ -350,6 +349,8 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   }
 
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+
+  *ptr = 0;
 
   // check the tee file
   if (strcmp(tee_file, tee_opened_file)) {
