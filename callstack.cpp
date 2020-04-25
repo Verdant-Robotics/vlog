@@ -27,7 +27,8 @@ static bool EndsWith(const std::string_view text, const std::string_view suffix)
 }
 
 static bool ShouldSkipFrame(const backward::ResolvedTrace& tr) {
-  return EndsWith(tr.source.filename, "/backward.h") || EndsWith(tr.source.filename, "/callstack.cpp");
+  return EndsWith(tr.source.filename, "/backward.h") || EndsWith(tr.source.filename, "/callstack.cpp") ||
+         EndsWith(tr.source.filename, "/vlog.cpp");
 }
 
 static void PrintSourceLocation(std::ostream& output, bool color,

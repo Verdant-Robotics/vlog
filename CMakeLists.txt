@@ -20,9 +20,7 @@ set(CMAKE_CXX_FLAGS
     -Werror=return-type \
     -Wno-c++98-compat \
     -Wno-c++98-compat-pedantic \
-    -Wno-global-constructors \
-    -Wno-double-promotion \
-    -Wno-padded")
+    -Wno-global-constructors")
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
   set(VLOG_MAIN_PROJECT TRUE)

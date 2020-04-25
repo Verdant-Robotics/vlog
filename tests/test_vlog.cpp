@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "backward/callstack.h"
 #include "vlog.h"
 
 static bool Contains(const std::string_view haystack, const std::string_view needle) {
@@ -11,6 +12,18 @@ static bool EndsWith(const std::string_view text, const std::string_view suffix)
     return (0 == text.compare(text.length() - suffix.length(), suffix.length(), suffix));
   }
   return false;
+}
+
+static bool HaveDebugSymbols() {
+#ifndef NDEBUG
+  // Force the assumption of debug symbols for debug builds. This will induce a
+  // test failure if they are not present in a debug build for whatever reason
+  return true;
+#else
+  std::ostringstream out;
+  PrintCurrentCallstack(out, false, nullptr, 0);
+  return Contains(out.str(), "test_vlog.cpp");
+#endif
 }
 
 TEST(TestVLog, StartStop) {
@@ -104,12 +117,22 @@ TEST(TestVLog, Fatal) {
 #pragma clang diagnostic pop
   std::string crash = testing::internal::GetCapturedStdout();
   EXPECT_TRUE(Contains(crash, TOKEN));
-  EXPECT_TRUE(Contains(crash, "vlog_fatal(VCAT_GENERAL"));
-  EXPECT_TRUE(Contains(crash, "TestVLog_Fatal_Test::TestBody()"));
-  EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
+  if (HaveDebugSymbols()) {
+    std::cout << "Debug symbols are present\n";
+    EXPECT_TRUE(Contains(crash, "vlog_fatal(VCAT_GENERAL"));
+    EXPECT_TRUE(Contains(crash, "TestVLog_Fatal_Test::TestBody()"));
+    EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
 
-  if (!Contains(crash, "vlog_fatal(VCAT_GENERAL")) {
-    std::cout << "Captured Output:\n" << crash << '\n';
+    if (!Contains(crash, "vlog_fatal(VCAT_GENERAL")) {
+      std::cout << "Captured Output:\n" << crash << '\n';
+    }
+  } else {
+    std::cout << "No debug symbols present\n";
+    EXPECT_TRUE(Contains(crash, "tests/test_vlog"));
+
+    if (!Contains(crash, "tests/test_vlog")) {
+      std::cout << "Captured Output:\n" << crash << '\n';
+    }
   }
 }
 
@@ -128,12 +151,22 @@ TEST(TestVLog, Assert) {
 #pragma clang diagnostic pop
   std::string crash = testing::internal::GetCapturedStdout();
   EXPECT_TRUE(Contains(crash, TOKEN));
-  EXPECT_TRUE(Contains(crash, "VLOG_ASSERT("));
-  EXPECT_TRUE(Contains(crash, "TestVLog_Assert_Test::TestBody()"));
-  EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
+  if (HaveDebugSymbols()) {
+    std::cout << "Debug symbols are present\n";
+    EXPECT_TRUE(Contains(crash, "VLOG_ASSERT("));
+    EXPECT_TRUE(Contains(crash, "TestVLog_Assert_Test::TestBody()"));
+    EXPECT_TRUE(Contains(crash, "tests/test_vlog.cpp"));
 
-  if (!Contains(crash, "VLOG_ASSERT(")) {
-    std::cout << "Captured Output:\n" << crash << '\n';
+    if (!Contains(crash, "VLOG_ASSERT(")) {
+      std::cout << "Captured Output:\n" << crash << '\n';
+    }
+  } else {
+    std::cout << "No debug symbols present\n";
+    EXPECT_TRUE(Contains(crash, "tests/test_vlog"));
+
+    if (!Contains(crash, "tests/test_vlog")) {
+      std::cout << "Captured Output:\n" << crash << '\n';
+    }
   }
 }
 
