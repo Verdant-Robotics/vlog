@@ -96,6 +96,9 @@ double time_now();
 
 void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func, const char *fmt, ...)  __attribute__ (( format( printf, 7, 8 ) ));
 
+#define likely(x)      __builtin_expect(!!(x), 1)
+#define unlikely(x)    __builtin_expect(!!(x), 0)
+
 #define vlog(level, category, ...) \
   vlog_func(level, category, true, __FILE__, __LINE__, __func__, __VA_ARGS__ )
 
@@ -138,7 +141,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
 
 #define VLOG_ASSERT(expr, ...)                                          \
   do {                                                                  \
-    if (!(expr)) {                                                      \
+    if (unlikely(!(expr))) {                                            \
       bool old_val = vlog_option_location;                              \
       vlog_option_location = true;                                      \
       vlog_func(VL_FATAL, VCAT_ASSERT, true, __FILE__, __LINE__,        \
