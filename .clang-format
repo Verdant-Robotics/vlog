@@ -6,9 +6,11 @@ BasedOnStyle: Google
 
 AccessModifierOffset: -2
 BreakConstructorInitializers: BeforeComma
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ColumnLimit: 110
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+DerivePointerAlignment: false
 FixNamespaceComments: true
+PointerAlignment: Left
 ReflowComments: true
 SortIncludes: true
 ...
