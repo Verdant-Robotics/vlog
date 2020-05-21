@@ -20,6 +20,7 @@ enum LogCategory
   VCAT_DETECT,
   VCAT_TRACK,
   VCAT_SENSOR,
+  VCAT_NAV,
   VCAT_GUI,
   VCAT_HAL,
   VCAT_TEST,
