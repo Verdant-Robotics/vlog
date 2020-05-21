@@ -123,6 +123,7 @@ static const struct log_categories {
   { "DETECT" , VCAT_DETECT  },
   { "TRACK"  , VCAT_TRACK   },
   { "SENSOR" , VCAT_SENSOR  },
+  { "NAV"    , VCAT_NAV     },
   { "HAL"    , VCAT_HAL     },
   { "GUI"    , VCAT_GUI     },
   { "TEST"   , VCAT_TEST    },
