@@ -137,19 +137,20 @@ static const struct log_categories {
 static const struct log_levels {
   const char *str;
   const char *display_str;
+  const char *display_no_color_str;
   enum LogLevel lvl;
 } log_levels[] = {
-  { "FATAL",   "\x1B[1;31mFATAL\x1B[m"  , VL_FATAL   },
-  { "ALWAYS",  "\x1B[35mALWAYS\x1B[m"   , VL_ALWAYS  },
-  { "SEVERE",  "\x1B[31mSEVERE\x1B[m"   , VL_SEVERE  },
-  { "ERROR",   "\x1B[31mERROR\x1B[m"    , VL_ERROR   },
-  { "WARNING", "\x1B[33mWARNING\x1B[m"  , VL_WARNING },
-  { "INFO",    "\x1B[0mINFO\x1B[0m"     , VL_INFO    },
-  { "CONFIG",  "\x1B[34mCONFIG\x1B[m"   , VL_CONFIG  },
-  { "DEBUG",   "\x1B[1mDEBUG\x1B[m"     , VL_DEBUG   },
-  { "FINE",    "\x1B[32mFINE\x1B[m"     , VL_FINE    },
-  { "FINER",   "\x1B[32mFINER\x1B[m"    , VL_FINER   },
-  { "FINEST",  "\x1B[1;32mFINEST\x1B[m" , VL_FINEST  }
+  { "FATAL",   "\x1B[1;31mFATAL\x1B[m"  , "[FATAL  ]", VL_FATAL   },
+  { "ALWAYS",  "\x1B[35mALWAYS\x1B[m"   , "[ALWAYS ]", VL_ALWAYS  },
+  { "SEVERE",  "\x1B[31mSEVERE\x1B[m"   , "[SEVERE ]", VL_SEVERE  },
+  { "ERROR",   "\x1B[31mERROR\x1B[m"    , "[ERROR  ]", VL_ERROR   },
+  { "WARNING", "\x1B[33mWARNING\x1B[m"  , "[WARNING]", VL_WARNING },
+  { "INFO",    "\x1B[0mINFO\x1B[0m"     , "[INFO   ]", VL_INFO    },
+  { "CONFIG",  "\x1B[34mCONFIG\x1B[m"   , "[CONFIG ]", VL_CONFIG  },
+  { "DEBUG",   "\x1B[1mDEBUG\x1B[m"     , "[DEBUG  ]", VL_DEBUG   },
+  { "FINE",    "\x1B[32mFINE\x1B[m"     , "[FINE   ]", VL_FINE    },
+  { "FINER",   "\x1B[32mFINER\x1B[m"    , "[FINER  ]", VL_FINER   },
+  { "FINEST",  "\x1B[1;32mFINEST\x1B[m" , "[FINEST ]", VL_FINEST  }
 };
 
 // clang-format on
@@ -316,7 +317,7 @@ static inline bool match_category(int category) { return (getOptionCategory() & 
 static const char *get_level_str(int level) {
   for (auto &elem : log_levels) {
     if (elem.lvl == level) {
-      return elem.display_str;
+      return vlog_option_color ? elem.display_str : elem.display_no_color_str;
     }
   }
   // We can do this because we only allow a single thread to be printing
