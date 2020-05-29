@@ -11,6 +11,23 @@
 #include <atomic>
 #include <mutex>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#pragma clang diagnostic ignored "-Wcast-align"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#pragma clang diagnostic ignored "-Wpadded"
+#define STB_SPRINTF_IMPLEMENTATION
+#include "stb_sprintf.h"
+#pragma clang diagnostic pop
+
+
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
 static double time_real_start = -1;
@@ -323,7 +340,7 @@ static const char *get_level_str(int level) {
   }
   // We can do this because we only allow a single thread to be printing
   static char buf[64];
-  sprintf(buf, "LVL_%d", level);
+  stbsp_sprintf(buf, "LVL_%d", level);
   return buf;
 }
 
@@ -369,19 +386,19 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
   // Do the printing
   if (newline) {  // only print the preamble if there is a newline
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
-      ptr += sprintf(ptr, "%10s ", get_level_str(level));
+      ptr += stbsp_sprintf(ptr, "%10s ", get_level_str(level));
     }
     if (vlog_option_print_category) {
       bool found = false;
       for (auto &elem : log_categories) {
         if (elem.cat == category) {
-          ptr += sprintf(ptr, "[%7s] ", elem.str);
+          ptr += stbsp_sprintf(ptr, "[%7s] ", elem.str);
           found = true;
           break;
         }
       }
       if (!found) {
-        ptr += sprintf(ptr, "[UNKNOWN] ");
+        ptr += stbsp_sprintf(ptr, "[UNKNOWN] ");
       }
     }
     if (vlog_option_timelog) {
@@ -389,20 +406,20 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
         // TODO: Not implemented so far
       } else {
         double now = time_now();
-        ptr += sprintf(ptr, "[%f] ", now);
+        ptr += stbsp_sprintf(ptr, "[%f] ", now);
       }
     }
     if (vlog_option_thread_id) {
-      ptr += sprintf(ptr, "<%d> ", gettid());
+      ptr += stbsp_sprintf(ptr, "<%d> ", gettid());
     }
     if (vlog_option_location) {
-      ptr += sprintf(ptr, "%s:%d,{%s} ", file, line, func);
+      ptr += stbsp_sprintf(ptr, "%s:%d,{%s} ", file, line, func);
     }
   }
-  ptr += vsprintf(ptr, fmt, args);
+  ptr += stbsp_vsprintf(ptr, fmt, args);
   va_end(args);
   if (newline) {
-    ptr += sprintf(ptr, "\n");
+    ptr += stbsp_sprintf(ptr, "\n");
   }
   fprintf(log_stream, "%s", sbuffer);
   fflush(log_stream);
