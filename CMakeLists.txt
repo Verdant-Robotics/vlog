@@ -55,3 +55,5 @@ install(TARGETS vlog DESTINATION lib)
 add_custom_target(vlog-check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
 add_custom_target(vlog-lint ${VLOG_ROOT_DIR}/scripts/lint.py)
 add_custom_target(vlog-fix ${VLOG_ROOT_DIR}/scripts/lint.py -i)
+
+set(vlog_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "vlog_SOURCE_DIR")

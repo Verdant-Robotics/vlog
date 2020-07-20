@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include <atomic>
+#include <experimental/filesystem>
 #include <mutex>
 
 #pragma clang diagnostic push
@@ -27,6 +28,7 @@
 #include "stb_sprintf.h"
 #pragma clang diagnostic pop
 
+namespace fs = std::experimental::filesystem;
 
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
@@ -41,29 +43,30 @@ void setSimTimeParams(double sim_start, double sim_ratio) {
 
 void set_sim_time(double t) { sim_time = t; }
 
+bool is_sim_time() { return sim_time > 0.0; }
+
 double time_now() {
+  if (sim_time > 0.0) {
+    return sim_time;
+  }
+
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
   double now = double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
 
   if (time_sim_start < 0) {
     return now;
-  } else {
-    if (sim_time > 0.0) {
-      return sim_time;
-    }
-
-    double real_time_elapsed = now - time_real_start;
-    double real_time_scaled = real_time_elapsed / time_sim_ratio;
-    double sim_now = time_sim_start + real_time_scaled;
-    return sim_now;
   }
+
+  const double real_time_elapsed = now - time_real_start;
+  const double real_time_scaled = real_time_elapsed / time_sim_ratio;
+  return time_sim_start + real_time_scaled;
 }
 
 static char log_file[512] = {};
 static char tee_file[512] = {};
 static char tee_opened_file[512] = {};
-static char sbuffer[4096];
+static char sbuffer[8192];
 
 volatile bool vlog_option_location = false;        // Log the file, line, function for each message?
 volatile bool vlog_option_thread_id = false;       // Log the thread id for each message?
@@ -71,8 +74,8 @@ volatile bool vlog_option_timelog = true;          // Log the time for each mess
 volatile bool vlog_option_time_date = false;       // Date or timestamp in seconds
 volatile bool vlog_option_print_category = false;  // Should the category be logged?
 volatile bool vlog_option_print_level = true;      // Should the level be logged?
-volatile char *vlog_option_file = log_file;        // where to log
-volatile char *vlog_option_tee_file = tee_file;
+volatile char* vlog_option_file = log_file;        // where to log
+volatile char* vlog_option_tee_file = tee_file;
 int vlog_option_level = VL_INFO;                 // Log level to use
 unsigned int vlog_option_category = 0xFFFFFFFF;  // Log categories to use, bitfield
 volatile bool vlog_option_exit_on_fatal = true;
@@ -80,8 +83,8 @@ volatile bool vlog_option_color = true;
 
 static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
-static FILE *log_stream = nullptr;
-static FILE *tee_stream = nullptr;
+static FILE* log_stream = nullptr;
+static FILE* tee_stream = nullptr;
 
 int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
@@ -174,7 +177,7 @@ static const struct log_levels {
 // clang-format on
 #pragma clang diagnostic pop
 
-const char *vlog_vars =
+const char* vlog_vars =
     R"(
   Environment variables to control logging:
 
@@ -210,18 +213,18 @@ const char *vlog_vars =
        This variable controls if we print color, useful for CI
 )";
 
-static bool var_matches(const char *var, const char *opt) { return strncasecmp(var, opt, strlen(opt)) == 0; }
+static bool var_matches(const char* var, const char* opt) { return strncasecmp(var, opt, strlen(opt)) == 0; }
 
-static const char *getval(const char *var) {
-  const char *r = var;
+static const char* getval(const char* var) {
+  const char* r = var;
   while ((*r != '=') && (*r != 0)) r++;
   return ++r;
 }
 
-void set_log_level_string(const char *level) {
+void set_log_level_string(const char* level) {
   std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
   bool found = false;
-  for (auto &elem : log_levels) {
+  for (auto& elem : log_levels) {
     if (!strcasecmp(level, elem.str)) {
       setOptionLevel(elem.lvl);
       //        printf("Setting vlog level to %s\n", elem.str);
@@ -250,10 +253,10 @@ bool vlog_init() {
     shptr = new backward::SignalHandling();
 #endif  // ENABLE_BACKTRACE
 
-    char **env;
+    char** env;
     for (env = environ; *env != nullptr; env++) {
-      char *var = *env;
-      const char *val = getval(var);
+      char* var = *env;
+      const char* val = getval(var);
 
       if (var_matches(var, "VLOG_FILE")) {
         if (var_matches(val, "stdout")) {
@@ -261,7 +264,7 @@ bool vlog_init() {
         } else if (var_matches(val, "stderr")) {
           log_stream = stderr;
         } else {
-          FILE *f = fopen(val, "w+");
+          FILE* f = fopen(val, "w+");
           if (f != nullptr) {
             log_stream = f;
           } else {
@@ -295,7 +298,7 @@ bool vlog_init() {
           // Nothing to do, this is the default
         } else {
           unsigned int mask = 0;
-          for (auto &elem : log_categories) {
+          for (auto& elem : log_categories) {
             if (strcasestr(val, elem.str)) {
               //                          printf("Setting vlog category to
               //                          %s\n", elem.str);
@@ -328,12 +331,16 @@ void vlog_fini() {
   }
 }
 
+#ifdef __EMSCRIPTEN__
+static pid_t gettid() { return 0; }
+#else
 static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
+#endif
 
 static inline bool match_category(int category) { return (getOptionCategory() & (1 << category)) != 0; }
 
-static const char *get_level_str(int level) {
-  for (auto &elem : log_levels) {
+static const char* get_level_str(int level) {
+  for (auto& elem : log_levels) {
     if (elem.lvl == level) {
       return vlog_option_color ? elem.display_str : elem.display_no_color_str;
     }
@@ -344,11 +351,11 @@ static const char *get_level_str(int level) {
   return buf;
 }
 
-void vlog_func(int level, int category, bool newline, const char *file, int line, const char *func,
-               const char *fmt, ...) {
+void vlog_func(int level, int category, bool newline, const char* file, int line, const char* func,
+               const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  char *ptr = sbuffer;
+  char* ptr = sbuffer;
 
   if (!vlog_init_done) {
     vlog_init();
@@ -377,6 +384,11 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
       fclose(tee_stream);
       tee_stream = nullptr;
     }
+
+    fs::path p(tee_file);
+    std::error_code eg;
+    fs::create_directories(p.parent_path(), eg);
+
     tee_stream = fopen(tee_file, "a");
     if (tee_stream) {
       strcpy(tee_opened_file, tee_file);
@@ -390,7 +402,7 @@ void vlog_func(int level, int category, bool newline, const char *file, int line
     }
     if (vlog_option_print_category) {
       bool found = false;
-      for (auto &elem : log_categories) {
+      for (auto& elem : log_categories) {
         if (elem.cat == category) {
           ptr += stbsp_sprintf(ptr, "[%7s] ", elem.str);
           found = true;
