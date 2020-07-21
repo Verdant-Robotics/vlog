@@ -334,7 +334,9 @@ void vlog_fini() {
 #ifdef __EMSCRIPTEN__
 static pid_t gettid() { return 0; }
 #else
+#if !defined(_GNU_SOURCE) || !defined(__GLIBC__) || __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 30)
 static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
+#endif
 #endif
 
 static inline bool match_category(int category) { return (getOptionCategory() & (1 << category)) != 0; }

@@ -7,6 +7,12 @@ option(ENABLE_VLOG_TESTS "Enable VLog Tests" OFF)
 
 set(VLOG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+  add_compile_options(-march=native)
+else()
+  add_compile_options(-mcpu=native)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -41,7 +47,7 @@ if(${ENABLE_BACKTRACE})
 
   target_compile_definitions(vlog PRIVATE -DBACKWARD_HAS_DWARF=1)
   target_include_directories(vlog SYSTEM PRIVATE ${DWARF_INCLUDE_DIR})
-  target_link_libraries(vlog PRIVATE dl elf dwarf)
+  target_link_libraries(vlog PRIVATE dl elf dwarf stdc++fs)
 endif()
 
 if(${ENABLE_VLOG_TESTS} OR ${VLOG_MAIN_PROJECT})
