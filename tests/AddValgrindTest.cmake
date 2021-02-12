@@ -1,0 +1,11 @@
+function(add_valgrind_test)
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64") # TODO support aarch, too
+    if( ARGV1  )
+      message( STATUS "Running valgrind with suppressions file '${ARGV1}'.")
+      add_test( NAME ${ARGV0}_valgrind COMMAND valgrind --error-exitcode=2 --leak-check=full --suppressions=${ARGV1} ${CMAKE_CURRENT_BINARY_DIR}/${ARGV0} )
+    else()
+      message( STATUS "Running valgrind without suppressions file.")
+      add_test( NAME ${ARGV0}_valgrind COMMAND valgrind --error-exitcode=2 --leak-check=full ${CMAKE_CURRENT_BINARY_DIR}/${ARGV0} )
+    endif()
+  endif()
+endfunction()

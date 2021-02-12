@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.13)
 
 project(vlog)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
+
+include(FetchDependency)
+
+fetch_dependency(stb "https://git.martian.ag/open-source/stb.git" "master")
+
+# need to force so tests run outside of CI
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build Type" FORCE)
+endif()
+
 option(ENABLE_BACKTRACE "Enable Backtrace Printing" TRUE)
 option(ENABLE_VLOG_TESTS "Enable VLog Tests" OFF)
 
@@ -26,6 +37,8 @@ set(CMAKE_CXX_FLAGS
     -Werror=return-type \
     -Wno-c++98-compat \
     -Wno-c++98-compat-pedantic \
+    -Wno-ctad-maybe-unsupported \
+    -Wno-missing-noreturn \
     -Wno-global-constructors")
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
@@ -47,7 +60,7 @@ if(${ENABLE_BACKTRACE})
 
   target_compile_definitions(vlog PRIVATE -DBACKWARD_HAS_DWARF=1)
   target_include_directories(vlog SYSTEM PRIVATE ${DWARF_INCLUDE_DIR})
-  target_link_libraries(vlog PRIVATE dl elf dwarf stdc++fs)
+  target_link_libraries(vlog PRIVATE dl elf dwarf stb stdc++fs)
 endif()
 
 if(${ENABLE_VLOG_TESTS} OR ${VLOG_MAIN_PROJECT})

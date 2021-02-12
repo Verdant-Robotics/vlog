@@ -10,9 +10,7 @@ import subprocess
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i", help="Inplace edit files, if specified.", action="store_true"
-    )
+    parser.add_argument("-i", help="Inplace edit files, if specified.", action="store_true")
     args = parser.parse_args()
 
     # Set the working directory to the parent directory of this script (project root)

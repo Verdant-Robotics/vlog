@@ -1,5 +1,6 @@
 #include "vlog.h"
 
+#include <stb/stb_sprintf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,22 +12,6 @@
 #include <atomic>
 #include <experimental/filesystem>
 #include <mutex>
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreserved-id-macro"
-#pragma clang diagnostic ignored "-Wold-style-cast"
-#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-#pragma clang diagnostic ignored "-Wextra-semi-stmt"
-#pragma clang diagnostic ignored "-Wcast-align"
-#pragma clang diagnostic ignored "-Wcast-qual"
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#pragma clang diagnostic ignored "-Wconditional-uninitialized"
-#pragma clang diagnostic ignored "-Wdouble-promotion"
-#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
-#pragma clang diagnostic ignored "-Wpadded"
-#define STB_SPRINTF_IMPLEMENTATION
-#include "stb_sprintf.h"
-#pragma clang diagnostic pop
 
 namespace fs = std::experimental::filesystem;
 
@@ -67,6 +52,7 @@ static char log_file[512] = {};
 static char tee_file[512] = {};
 static char tee_opened_file[512] = {};
 static char sbuffer[8192];
+static char cat_buffer[512] = {};
 
 volatile bool vlog_option_location = false;        // Log the file, line, function for each message?
 volatile bool vlog_option_thread_id = false;       // Log the thread id for each message?
@@ -76,8 +62,8 @@ volatile bool vlog_option_print_category = false;  // Should the category be log
 volatile bool vlog_option_print_level = true;      // Should the level be logged?
 volatile char* vlog_option_file = log_file;        // where to log
 volatile char* vlog_option_tee_file = tee_file;
-int vlog_option_level = VL_INFO;                 // Log level to use
-unsigned int vlog_option_category = 0xFFFFFFFF;  // Log categories to use, bitfield
+int vlog_option_level = VL_INFO;             // Log level to use
+const char* vlog_option_category = nullptr;  // Log categories to use, semicolon separated words
 volatile bool vlog_option_exit_on_fatal = true;
 volatile bool vlog_option_color = true;
 
@@ -85,14 +71,28 @@ static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
 static FILE* log_stream = nullptr;
 static FILE* tee_stream = nullptr;
+static std::vector<VlogHandler> callbacks;
 
 int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
 void setOptionLevel(int level) { __atomic_store_n(&vlog_option_level, level, __ATOMIC_SEQ_CST); }
 
-int getOptionCategory() { return int(__atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST)); }
+const char* getOptionCategory() { return __atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST); }
 
-void setOptionCategory(int cat) { __atomic_store_n(&vlog_option_category, uint(cat), __ATOMIC_SEQ_CST); }
+void setOptionCategory(const char* cat) {
+  strncpy(cat_buffer, cat, sizeof(cat_buffer));
+  __atomic_store_n(&vlog_option_category, cat_buffer, __ATOMIC_SEQ_CST);
+}
+
+std::string FormatString(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  char buffer[2048];
+  stbsp_vsprintf(buffer, fmt, args);
+  va_end(args);
+
+  return buffer;
+}
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
@@ -132,28 +132,6 @@ PrintFunctionDef PrintFunction = SignalHandlerPrinter;
 static backward::SignalHandling* shptr = nullptr;
 
 #endif // defined ENABLE_BACKTRACE
-
-
-static const struct log_categories {
-  const char *str;
-  enum LogCategory cat;
-} log_categories[] = {
-  { "UNKNOWN", VCAT_UNKNOWN },
-  { "GENERAL", VCAT_GENERAL },
-  { "DETECT" , VCAT_DETECT  },
-  { "TRACK"  , VCAT_TRACK   },
-  { "SENSOR" , VCAT_SENSOR  },
-  { "NAV"    , VCAT_NAV     },
-  { "HAL"    , VCAT_HAL     },
-  { "GUI"    , VCAT_GUI     },
-  { "TEST"   , VCAT_TEST    },
-  { "NODE"   , VCAT_NODE    },
-  { "ASSERT" , VCAT_ASSERT  },
-  { "VID"    , VCAT_VID     },
-  { "DB"     , VCAT_DB      },
-  { "DB_READ", VCAT_DB_READ },
-  { "DB_WRITE", VCAT_DB_WRITE},    
-};
 
 static const struct log_levels {
   const char *str;
@@ -201,7 +179,7 @@ const char* vlog_vars =
        This variable controls the level of logging, by default only error or more severe are printed. Numbers are also accepted.
 
     VLOG_CATEGORY -> ALL (default), GENERAL, DETECT, ...
-       This variable controls which categories are printed. All is the default, but a comma separated list of categories can be added
+       This variable controls which categories are printed. All is the default, but a semicolon separated list of categories can be added
 
     VLOG_PRINT_CATEGORY -> 1, 0 (default)
        This variable controls if the category is logged on each message
@@ -222,7 +200,7 @@ static const char* getval(const char* var) {
 }
 
 void set_log_level_string(const char* level) {
-  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+  std::lock_guard guard(vlog_mutex);
   bool found = false;
   for (auto& elem : log_levels) {
     if (!strcasecmp(level, elem.str)) {
@@ -244,8 +222,10 @@ void set_log_level_string(const char* level) {
   }
 }
 
+void vlog_add_callback(VlogHandler callback) { callbacks.push_back(callback); }
+
 bool vlog_init() {
-  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+  std::lock_guard guard(vlog_mutex);
   if (!vlog_init_done) {
     log_stream = stdout;
 
@@ -297,18 +277,7 @@ bool vlog_init() {
         if (var_matches(val, "ALL")) {
           // Nothing to do, this is the default
         } else {
-          unsigned int mask = 0;
-          for (auto& elem : log_categories) {
-            if (strcasestr(val, elem.str)) {
-              //                          printf("Setting vlog category to
-              //                          %s\n", elem.str);
-              mask |= (1 << elem.cat);
-            }
-          }
-          if (mask != 0) {
-            mask |= 1 << VCAT_ASSERT;  // Always show assertion failures.
-            setOptionCategory(int(mask));
-          }
+          setOptionCategory(val);
         }
       }
     }
@@ -332,14 +301,51 @@ void vlog_fini() {
 }
 
 #ifdef __EMSCRIPTEN__
-static pid_t gettid() { return 0; }
+pid_t GetThreadId() { return 0; }
 #else
-#if !defined(_GNU_SOURCE) || !defined(__GLIBC__) || __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 30)
-static pid_t gettid() { return pid_t(syscall(SYS_gettid)); }
+#ifdef SYS_gettid
+pid_t GetThreadId() { return pid_t(syscall(SYS_gettid)); }
+#else
+#error "SYS_gettid unavailable on this system"
 #endif
 #endif
 
-static inline bool match_category(int category) { return (getOptionCategory() & (1 << category)) != 0; }
+static inline const char* find_next_word(const char* hay) {
+  const char* ret = strchr(hay, ';');
+  if (ret != nullptr) {
+    ret++;
+  }
+  return ret;
+}
+
+static inline bool match_word_semicolon(const char* hay, const char* ned, const char** next_word) {
+  while (*hay == *ned && *ned) {
+    hay++;
+    ned++;
+  }
+  if (*ned == 0 && (*hay == 0 || *hay == ';')) {
+    return true;
+  }
+  *next_word = find_next_word(hay);
+  return false;
+}
+
+static inline bool match_category(const char* category) {
+  auto* ourcat = getOptionCategory();
+  // trivially accept everything
+  if (ourcat == nullptr) return true;
+
+  const char* needle = category;
+  const char* haystack = const_cast<const char*>(ourcat);
+  while (haystack != nullptr) {
+    const char* next_word;
+    if (match_word_semicolon(haystack, needle, &next_word)) {
+      return true;
+    }
+    haystack = next_word;
+  }
+  return false;
+}
 
 static const char* get_level_str(int level) {
   for (auto& elem : log_levels) {
@@ -353,7 +359,7 @@ static const char* get_level_str(int level) {
   return buf;
 }
 
-void vlog_func(int level, int category, bool newline, const char* file, int line, const char* func,
+void vlog_func(int level, const char* category, bool newline, const char* file, int line, const char* func,
                const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -376,7 +382,7 @@ void vlog_func(int level, int category, bool newline, const char* file, int line
     }
   }
 
-  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+  std::lock_guard guard(vlog_mutex);
 
   *ptr = 0;
 
@@ -403,17 +409,7 @@ void vlog_func(int level, int category, bool newline, const char* file, int line
       ptr += stbsp_sprintf(ptr, "%10s ", get_level_str(level));
     }
     if (vlog_option_print_category) {
-      bool found = false;
-      for (auto& elem : log_categories) {
-        if (elem.cat == category) {
-          ptr += stbsp_sprintf(ptr, "[%7s] ", elem.str);
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        ptr += stbsp_sprintf(ptr, "[UNKNOWN] ");
-      }
+      ptr += stbsp_sprintf(ptr, "[%7s] ", category);
     }
     if (vlog_option_timelog) {
       if (vlog_option_time_date) {
@@ -424,14 +420,21 @@ void vlog_func(int level, int category, bool newline, const char* file, int line
       }
     }
     if (vlog_option_thread_id) {
-      ptr += stbsp_sprintf(ptr, "<%d> ", gettid());
+      ptr += stbsp_sprintf(ptr, "<%d> ", GetThreadId());
     }
     if (vlog_option_location) {
       ptr += stbsp_sprintf(ptr, "%s:%d,{%s} ", file, line, func);
     }
   }
-  ptr += stbsp_vsprintf(ptr, fmt, args);
+  const int msg_len = stbsp_vsprintf(ptr, fmt, args);
   va_end(args);
+
+  for (const auto& callback : callbacks) {
+    callback(LogLevel(level), category, file, line, func, ptr);
+  }
+
+  ptr += msg_len;
+
   if (newline) {
     ptr += stbsp_sprintf(ptr, "\n");
   }
@@ -459,14 +462,14 @@ void vlog_func(int level, int category, bool newline, const char* file, int line
 
     // TODO - add callback for cleaning up drivers, etc.
     fflush(log_stream);
-    assert(false);  // This helps break in the debugger
+    __builtin_debugtrap();  // This helps break in the debugger
     exit(-1);
   }
 }
 
 void vlog_flush()  // Ensure all data is on disk
 {
-  std::lock_guard<std::recursive_mutex> guard(vlog_mutex);
+  std::lock_guard guard(vlog_mutex);
   if (!vlog_init_done) {
     vlog_init();
   }

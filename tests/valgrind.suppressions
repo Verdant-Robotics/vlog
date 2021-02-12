@@ -1,0 +1,6 @@
+{
+   <gtest>
+   Memcheck:Leak
+   ...
+   obj:/usr/local/lib/libgtest.so
+}
