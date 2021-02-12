@@ -71,7 +71,7 @@ static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
 static FILE* log_stream = nullptr;
 static FILE* tee_stream = nullptr;
-static std::vector<VlogHandler> callbacks;
+static std::vector<VlogHandler>* callbacks = nullptr;
 
 int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
@@ -222,13 +222,14 @@ void set_log_level_string(const char* level) {
   }
 }
 
-void vlog_add_callback(VlogHandler callback) { callbacks.push_back(callback); }
+void vlog_add_callback(VlogHandler callback) { callbacks->push_back(callback); }
 
 bool vlog_init() {
   std::lock_guard guard(vlog_mutex);
   if (!vlog_init_done) {
     log_stream = stdout;
 
+    callbacks = new std::vector<VlogHandler>;
 #if ENABLE_BACKTRACE
     shptr = new backward::SignalHandling();
 #endif  // ENABLE_BACKTRACE
@@ -287,6 +288,7 @@ bool vlog_init() {
 }
 
 void vlog_fini() {
+  if (callbacks) delete callbacks;
 #if ENABLE_BACKTRACE
   if (shptr != nullptr) {
     delete shptr;
@@ -429,7 +431,7 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
   const int msg_len = stbsp_vsprintf(ptr, fmt, args);
   va_end(args);
 
-  for (const auto& callback : callbacks) {
+  for (const auto& callback : *callbacks) {
     callback(LogLevel(level), category, file, line, func, ptr);
   }
 
