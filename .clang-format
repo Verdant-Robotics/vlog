@@ -13,6 +13,4 @@ FixNamespaceComments: true
 PointerAlignment: Left
 ReflowComments: true
 SortIncludes: true
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: Never
 ...
