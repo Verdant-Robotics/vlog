@@ -222,7 +222,10 @@ void set_log_level_string(const char* level) {
   }
 }
 
-void vlog_add_callback(VlogHandler callback) { callbacks->push_back(callback); }
+void vlog_add_callback(VlogHandler callback) {
+  if (callbacks == nullptr) __builtin_debugtrap();
+  callbacks->push_back(callback);
+}
 
 bool vlog_init() {
   std::lock_guard guard(vlog_mutex);
@@ -288,7 +291,11 @@ bool vlog_init() {
 }
 
 void vlog_fini() {
-  if (callbacks) delete callbacks;
+  if (callbacks) {
+    delete callbacks;
+    callbacks = nullptr;
+  }
+
 #if ENABLE_BACKTRACE
   if (shptr != nullptr) {
     delete shptr;
@@ -300,6 +307,8 @@ void vlog_fini() {
   if ((log_stream != stdout) && (log_stream != stderr)) {
     fclose(log_stream);
   }
+  // this is to allow reentrant init after fini
+  vlog_init_done = false;
 }
 
 #ifdef __EMSCRIPTEN__
@@ -431,8 +440,10 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
   const int msg_len = stbsp_vsprintf(ptr, fmt, args);
   va_end(args);
 
-  for (const auto& callback : *callbacks) {
-    callback(LogLevel(level), category, file, line, func, ptr);
+  if (callbacks != nullptr) {
+    for (const auto& callback : *callbacks) {
+      callback(LogLevel(level), category, file, line, func, ptr);
+    }
   }
 
   ptr += msg_len;
