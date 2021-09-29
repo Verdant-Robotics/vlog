@@ -19,7 +19,7 @@ option(ENABLE_VLOG_TESTS "Enable VLog Tests" OFF)
 set(VLOG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-  add_compile_options(-march=native)
+  add_compile_options(-march=x86-64-v3)
 else()
   add_compile_options(-mcpu=native)
 endif()
