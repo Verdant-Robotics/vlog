@@ -24,7 +24,7 @@ macro(add_vlog_test test_name test_cpp)
       -Wno-global-constructors \
       -Wno-double-promotion \
       -Wno-padded")
-  target_link_libraries(${test_name} PUBLIC vlog gtest)
+  target_link_libraries(${test_name} PUBLIC vlog gtest backward)
   add_test(${test_name} ${test_name})
 endmacro()
 
