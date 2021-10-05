@@ -1,6 +1,5 @@
 #include "vlog.h"
 
-#include <stb/stb_sprintf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +11,9 @@
 #include <atomic>
 #include <experimental/filesystem>
 #include <mutex>
+
+#define STB_SPRINTF_DECORATE(name) vlstbsp_##name
+#include <stb/stb_sprintf.h>
 
 namespace fs = std::experimental::filesystem;
 
@@ -88,7 +90,7 @@ std::string FormatString(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   char buffer[2048];
-  stbsp_vsprintf(buffer, fmt, args);
+  vlstbsp_vsprintf(buffer, fmt, args);
   va_end(args);
 
   return buffer;
@@ -366,7 +368,7 @@ static const char* get_level_str(int level) {
   }
   // We can do this because we only allow a single thread to be printing
   static char buf[64];
-  stbsp_sprintf(buf, "LVL_%d", level);
+  vlstbsp_sprintf(buf, "LVL_%d", level);
   return buf;
 }
 
@@ -417,27 +419,27 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
   // Do the printing
   if (newline) {  // only print the preamble if there is a newline
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
-      ptr += stbsp_sprintf(ptr, "%10s ", get_level_str(level));
+      ptr += vlstbsp_sprintf(ptr, "%10s ", get_level_str(level));
     }
     if (vlog_option_print_category) {
-      ptr += stbsp_sprintf(ptr, "[%7s] ", category);
+      ptr += vlstbsp_sprintf(ptr, "[%7s] ", category);
     }
     if (vlog_option_timelog) {
       if (vlog_option_time_date) {
         // TODO: Not implemented so far
       } else {
         double now = time_now();
-        ptr += stbsp_sprintf(ptr, "[%f] ", now);
+        ptr += vlstbsp_sprintf(ptr, "[%f] ", now);
       }
     }
     if (vlog_option_thread_id) {
-      ptr += stbsp_sprintf(ptr, "<%d> ", GetThreadId());
+      ptr += vlstbsp_sprintf(ptr, "<%d> ", GetThreadId());
     }
     if (vlog_option_location) {
-      ptr += stbsp_sprintf(ptr, "%s:%d,{%s} ", file, line, func);
+      ptr += vlstbsp_sprintf(ptr, "%s:%d,{%s} ", file, line, func);
     }
   }
-  const int msg_len = stbsp_vsprintf(ptr, fmt, args);
+  const int msg_len = vlstbsp_vsprintf(ptr, fmt, args);
   va_end(args);
 
   if (callbacks != nullptr) {
@@ -449,7 +451,7 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
   ptr += msg_len;
 
   if (newline) {
-    ptr += stbsp_sprintf(ptr, "\n");
+    ptr += vlstbsp_sprintf(ptr, "\n");
   }
   fprintf(log_stream, "%s", sbuffer);
   fflush(log_stream);
