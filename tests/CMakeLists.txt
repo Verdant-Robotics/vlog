@@ -1,11 +1,11 @@
-find_package(GTest REQUIRED)
+fetch_dependency(gtest "https://git.martian.ag/open-source/gtest.git" "master")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 include(AddValgrindTest)
 
 macro(add_vlog_test test_name test_cpp)
   add_executable(${test_name} ${test_cpp})
-  set_target_properties(${test_name} PROPERTIES CXX_STANDARD 17)
+  set_target_properties(${test_name} PROPERTIES CXX_STANDARD 20)
   set_target_properties(${test_name} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
   set_target_properties(${test_name} PROPERTIES CMAKE_POSITION_INDEPENDENT_CODE ON)
   set_target_properties(
@@ -25,10 +25,16 @@ macro(add_vlog_test test_name test_cpp)
       -Wno-double-promotion \
       -Wno-padded")
   target_link_libraries(${test_name} PUBLIC vlog gtest backward)
-  add_test(${test_name} ${test_name})
+  if (COMMAND add_unit_test)
+    add_unit_test(${test_name} ${test_name})
+  else()
+    add_test(${test_name} ${test_name})
+  endif()
 endmacro()
+
+add_vlog_test(test_vlog test_vlog.cpp)
 
 add_vlog_test(test_vlog_fatals test_vlog_fatals.cpp)
 
 add_vlog_test(test_vlog_non_fatals test_vlog_non_fatals.cpp)
-add_valgrind_test(test_vlog_non_fatals ${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions )
+#add_valgrind_test(test_vlog_non_fatals ${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions )

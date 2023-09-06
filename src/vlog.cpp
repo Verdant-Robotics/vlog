@@ -9,13 +9,20 @@
 #include <unistd.h>
 
 #include <atomic>
-#include <experimental/filesystem>
 #include <mutex>
+#include <vector>
 
 #define STB_SPRINTF_DECORATE(name) vlstbsp_##name
 #include <stb/stb_sprintf.h>
 
+#if (defined(_GLIBCXX_RELEASE) && (_GLIBCXX_RELEASE > 7)) || \
+    (defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION > 10000))
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#endif
 
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
@@ -56,8 +63,14 @@ static char tee_opened_file[512] = {};
 static char sbuffer[8192];
 static char cat_buffer[512] = {};
 
+#ifdef __llvm__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 volatile bool vlog_option_location = false;        // Log the file, line, function for each message?
 volatile bool vlog_option_thread_id = false;       // Log the thread id for each message?
+volatile bool vlog_option_thread_name = false;     // Log the thread name for each message?
 volatile bool vlog_option_timelog = true;          // Log the time for each message?
 volatile bool vlog_option_time_date = false;       // Date or timestamp in seconds
 volatile bool vlog_option_print_category = false;  // Should the category be logged?
@@ -68,12 +81,19 @@ int vlog_option_level = VL_INFO;             // Log level to use
 const char* vlog_option_category = nullptr;  // Log categories to use, semicolon separated words
 volatile bool vlog_option_exit_on_fatal = true;
 volatile bool vlog_option_color = true;
-
+static std::atomic<bool> callbacks_enabled(true);
 static std::atomic<bool> vlog_init_done(false);
 static std::recursive_mutex vlog_mutex;
 static FILE* log_stream = nullptr;
 static FILE* tee_stream = nullptr;
-static std::vector<VlogHandler>* callbacks = nullptr;
+static std::atomic<int> callback_counter = 0;
+template <typename F>
+struct CallbackContainer {
+  int callback_id;
+  F handler;
+};
+static std::vector<CallbackContainer<VlogHandler>>* callbacks = nullptr;
+static std::vector<CallbackContainer<VlogNewFileHandler>>* newfile_callbacks = nullptr;
 
 int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
@@ -82,22 +102,26 @@ void setOptionLevel(int level) { __atomic_store_n(&vlog_option_level, level, __A
 const char* getOptionCategory() { return __atomic_load_n(&vlog_option_category, __ATOMIC_SEQ_CST); }
 
 void setOptionCategory(const char* cat) {
-  strncpy(cat_buffer, cat, sizeof(cat_buffer));
-  __atomic_store_n(&vlog_option_category, cat_buffer, __ATOMIC_SEQ_CST);
+  if (cat != nullptr) {
+    strncpy(cat_buffer, cat, sizeof(cat_buffer) - 1);
+    __atomic_store_n(&vlog_option_category, &cat_buffer[0], __ATOMIC_SEQ_CST);
+  } else {
+    __atomic_store_n(&vlog_option_category, cat, __ATOMIC_SEQ_CST);
+  }
 }
 
 std::string FormatString(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  char buffer[2048];
-  vlstbsp_vsprintf(buffer, fmt, args);
+  constexpr int LEN = 2048;
+  char buffer[LEN];
+  vlstbsp_vsnprintf(buffer, LEN, fmt, args);
+  buffer[LEN - 1] = 0;
   va_end(args);
 
   return buffer;
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
 // clang-format off
 
 #if ENABLE_BACKTRACE
@@ -125,10 +149,14 @@ static void SignalHandlerPrinter( backward::StackTrace& st, [[maybe_unused]] FIL
 }
 
 namespace backward {
+#ifdef __llvm__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif
 PrintFunctionDef PrintFunction = SignalHandlerPrinter;
+#ifdef __llvm__
 #pragma clang diagnostic pop
+#endif
 }  // namespace backward
 
 static backward::SignalHandling* shptr = nullptr;
@@ -154,8 +182,10 @@ static const struct log_levels {
   { "FINEST",  "\x1B[1;32mFINEST\x1B[m" , "[FINEST ]", VL_FINEST  }
 };
 
+#ifdef __llvm__
 // clang-format on
 #pragma clang diagnostic pop
+#endif
 
 const char* vlog_vars =
     R"(
@@ -170,6 +200,9 @@ const char* vlog_vars =
 
     VLOG_THREAD_ID -> 1 , 0 (default)
        This variable controls the printing of the thread id that is logging
+
+    VLOG_THREAD_NAME -> 1 , 0 (default)
+       This variable controls the printing of the thread name that is logging
 
     VLOG_TIME_LOG -> 1, 0 (default)
        This variable controls whether a timestamp/date is included on each log
@@ -201,6 +234,10 @@ static const char* getval(const char* var) {
   return ++r;
 }
 
+static void enableCallbacks() { callbacks_enabled = true; }
+
+static void disableCallbacks() { callbacks_enabled = false; }
+
 void set_log_level_string(const char* level) {
   std::lock_guard guard(vlog_mutex);
   bool found = false;
@@ -224,9 +261,47 @@ void set_log_level_string(const char* level) {
   }
 }
 
-void vlog_add_callback(VlogHandler callback) {
+int vlog_add_callback(VlogHandler callback) {
+  std::lock_guard guard(vlog_mutex);
+#ifdef __GNUC__
+  if (callbacks == nullptr) __builtin_trap();
+#else
   if (callbacks == nullptr) __builtin_debugtrap();
-  callbacks->push_back(callback);
+#endif
+  int id = ++callback_counter;
+  callbacks->push_back({id, callback});
+  return id;
+}
+
+int vlog_add_new_file_callback(VlogNewFileHandler callback) {
+  std::lock_guard guard(vlog_mutex);
+#ifdef __GNUC__
+  if (newfile_callbacks == nullptr) __builtin_trap();
+#else
+  if (newfile_callbacks == nullptr) __builtin_debugtrap();
+#endif
+  int id = ++callback_counter;
+  newfile_callbacks->push_back({id, callback});
+  return id;
+}
+
+void vlog_clear_callback(int id) {
+  std::lock_guard guard(vlog_mutex);
+  if(callbacks) {
+    for (auto& callback : *callbacks) {
+      if (callback.callback_id == id) {
+        std::swap(callback, callbacks->back());
+        callbacks->pop_back();
+        return;
+      }
+    }
+  }
+}
+
+void vlog_clear_callbacks() {
+  std::lock_guard guard(vlog_mutex);
+  delete callbacks;
+  callbacks = nullptr;
 }
 
 bool vlog_init() {
@@ -234,7 +309,8 @@ bool vlog_init() {
   if (!vlog_init_done) {
     log_stream = stdout;
 
-    callbacks = new std::vector<VlogHandler>;
+    callbacks = new std::vector<CallbackContainer<VlogHandler>>;
+    newfile_callbacks = new std::vector<CallbackContainer<VlogNewFileHandler>>;
 #if ENABLE_BACKTRACE
     shptr = new backward::SignalHandling();
 #endif  // ENABLE_BACKTRACE
@@ -244,7 +320,7 @@ bool vlog_init() {
       char* var = *env;
       const char* val = getval(var);
 
-      if (var_matches(var, "VLOG_FILE")) {
+      if (var_matches(var, VLOG_FILE)) {
         if (var_matches(val, "stdout")) {
           // Nothing to do, this is the default
         } else if (var_matches(val, "stderr")) {
@@ -257,29 +333,31 @@ bool vlog_init() {
             fprintf(stderr, "Could not log to file %s , logging to stdout\n", val);
           }
         }
-      } else if (var_matches(var, "VLOG_EXIT_ON_FATAL")) {
+      } else if (var_matches(var, VLOG_EXIT_ON_FATAL)) {
         vlog_option_exit_on_fatal = (*val == '1');
-      } else if (var_matches(var, "VLOG_SRC_LOCATION")) {
+      } else if (var_matches(var, VLOG_SRC_LOCATION)) {
         vlog_option_location = (*val == '1');
-      } else if (var_matches(var, "VLOG_THREAD_ID")) {
+      } else if (var_matches(var, VLOG_THREAD_ID)) {
         vlog_option_thread_id = (*val == '1');
-      } else if (var_matches(var, "VLOG_TIME_LOG")) {
+      } else if (var_matches(var, VLOG_THREAD_NAME)) {
+        vlog_option_thread_name = (*val == '1');
+      } else if (var_matches(var, VLOG_TIME_LOG)) {
         vlog_option_timelog = (*val == '1');
-      } else if (var_matches(var, "VLOG_PRINT_CATEGORY")) {
+      } else if (var_matches(var, VLOG_PRINT_CATEGORY)) {
         vlog_option_print_category = (*val == '1');
-      } else if (var_matches(var, "VLOG_PRINT_LEVEL")) {
+      } else if (var_matches(var, VLOG_PRINT_LEVEL)) {
         vlog_option_print_level = (*val == '1');
-      } else if (var_matches(var, "VLOG_COLOR")) {
+      } else if (var_matches(var, VLOG_COLOR)) {
         vlog_option_color = (*val == '1');
-      } else if (var_matches(var, "VLOG_TIME_FORMAT")) {
+      } else if (var_matches(var, VLOG_TIME_FORMAT)) {
         if (var_matches(val, "date")) {
           vlog_option_time_date = true;
         } else if (var_matches(val, "stamp")) {
           vlog_option_time_date = false;
         }
-      } else if (var_matches(var, "VLOG_LEVEL")) {
+      } else if (var_matches(var, VLOG_LEVEL)) {
         set_log_level_string(val);
-      } else if (var_matches(var, "VLOG_CATEGORY")) {
+      } else if (var_matches(var, VLOG_CATEGORY)) {
         if (var_matches(val, "ALL")) {
           // Nothing to do, this is the default
         } else {
@@ -296,6 +374,11 @@ void vlog_fini() {
   if (callbacks) {
     delete callbacks;
     callbacks = nullptr;
+  }
+
+  if (newfile_callbacks) {
+    delete newfile_callbacks;
+    newfile_callbacks = nullptr;
   }
 
 #if ENABLE_BACKTRACE
@@ -322,6 +405,17 @@ pid_t GetThreadId() { return pid_t(syscall(SYS_gettid)); }
 #error "SYS_gettid unavailable on this system"
 #endif
 #endif
+
+static const char* GetThreadName() {
+#ifdef __EMSCRIPTEN__
+  return "";
+#else
+  static char tnamebuf[32];
+  pthread_t self = pthread_self();
+  pthread_getname_np(self, tnamebuf, sizeof(tnamebuf));
+  return tnamebuf;
+#endif
+}
 
 static inline const char* find_next_word(const char* hay) {
   const char* ret = strchr(hay, ';');
@@ -360,7 +454,7 @@ static inline bool match_category(const char* category) {
   return false;
 }
 
-static const char* get_level_str(int level) {
+const char* get_level_str(int level) {
   for (auto& elem : log_levels) {
     if (elem.lvl == level) {
       return vlog_option_color ? elem.display_str : elem.display_no_color_str;
@@ -368,8 +462,32 @@ static const char* get_level_str(int level) {
   }
   // We can do this because we only allow a single thread to be printing
   static char buf[64];
-  vlstbsp_sprintf(buf, "LVL_%d", level);
+  vlstbsp_snprintf(buf, 64, "LVL_%d", level);
+  buf[63] = 0;
   return buf;
+}
+
+static inline void PrintBacktraceAndExit() {
+#if ENABLE_BACKTRACE
+  std::stringstream out;
+  PrintCurrentCallstack(out, true, nullptr, 2);
+  fprintf(log_stream, "\n%s\n", out.str().c_str());
+  fflush(log_stream);
+  if (tee_stream) {
+    fprintf(tee_stream, "\n%s\n", out.str().c_str());
+    fflush(tee_stream);
+  }
+  // Unregister the backtrace SIGABRT signal handler so we don't print two stack traces
+  signal(SIGABRT, SIG_DFL);
+#endif
+
+  // TODO - add callback for cleaning up drivers, etc.
+  fflush(log_stream);
+#ifdef __GNUC__
+  __builtin_trap();
+#else
+  __builtin_debugtrap();  // This helps break in the debugger
+#endif
 }
 
 void vlog_func(int level, const char* category, bool newline, const char* file, int line, const char* func,
@@ -377,6 +495,9 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
   va_list args;
   va_start(args, fmt);
   char* ptr = sbuffer;
+  constexpr int LEN = sizeof(sbuffer);
+  int nbytes_left = LEN;
+  const char* thread_name = "Unknown";
 
   if (!vlog_init_done) {
     vlog_init();
@@ -414,45 +535,97 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
     if (tee_stream) {
       strcpy(tee_opened_file, tee_file);
     }
+    if (newfile_callbacks != nullptr && callbacks_enabled) {
+      // If this callbacks are called from any of this callbacks, it might get stuck in recursive loops.
+      // It's safer to disable callbacks when you are running one.
+      disableCallbacks();
+      for (const auto& callback : *newfile_callbacks) {
+        callback.handler(tee_file);
+      }
+      // Enable those callbacks now.
+      enableCallbacks();
+    }
   }
 
   // Do the printing
   if (newline) {  // only print the preamble if there is a newline
     if (vlog_option_print_level && (level != VL_ALWAYS)) {
-      ptr += vlstbsp_sprintf(ptr, "%10s ", get_level_str(level));
+      int nb = vlstbsp_snprintf(ptr, nbytes_left, "%10s ", get_level_str(level));
+      nb = std::min(nb, nbytes_left);
+      ptr += nb;
+      nbytes_left -= nb;
     }
     if (vlog_option_print_category) {
-      ptr += vlstbsp_sprintf(ptr, "[%7s] ", category);
+      int nb = vlstbsp_snprintf(ptr, nbytes_left, "[%7s] ", category);
+      nb = std::min(nb, nbytes_left);
+      ptr += nb;
+      nbytes_left -= nb;
     }
     if (vlog_option_timelog) {
       if (vlog_option_time_date) {
         // TODO: Not implemented so far
       } else {
         double now = time_now();
-        ptr += vlstbsp_sprintf(ptr, "[%f] ", now);
+        int nb = vlstbsp_snprintf(ptr, nbytes_left, "[%f] ", now);
+        nb = std::min(nb, nbytes_left);
+        ptr += nb;
+        nbytes_left -= nb;
       }
     }
     if (vlog_option_thread_id) {
-      ptr += vlstbsp_sprintf(ptr, "<%d> ", GetThreadId());
+      int nb = vlstbsp_snprintf(ptr, nbytes_left, "<%d> ", GetThreadId());
+      nb = std::min(nb, nbytes_left);
+      ptr += nb;
+      nbytes_left -= nb;
+    }
+    if (vlog_option_thread_name) {
+      thread_name = GetThreadName();
+      int nb = vlstbsp_snprintf(ptr, nbytes_left, "<%s> ", thread_name);
+      nb = std::min(nb, nbytes_left);
+      ptr += nb;
+      nbytes_left -= nb;
     }
     if (vlog_option_location) {
-      ptr += vlstbsp_sprintf(ptr, "%s:%d,{%s} ", file, line, func);
+      int nb = vlstbsp_snprintf(ptr, nbytes_left, "%s:%d,{%s} ", file, line, func);
+      nb = std::min(nb, nbytes_left);
+      ptr += nb;
+      nbytes_left -= nb;
     }
   }
-  const int msg_len = vlstbsp_vsprintf(ptr, fmt, args);
+  int msg_len = vlstbsp_vsnprintf(ptr, nbytes_left, fmt, args);
+  msg_len = std::min(msg_len, nbytes_left);
+  nbytes_left -= msg_len;
   va_end(args);
 
-  if (callbacks != nullptr) {
+#if ENABLE_BACKTRACE
+  if (level == VL_FATAL) {
+    int nb = vlstbsp_snprintf(ptr + msg_len, nbytes_left,
+                              "\n==========================================================\n%s",
+                              GetCurrentCallstack(false).c_str());
+    nb = std::min(nb, nbytes_left);
+    msg_len += nb;
+  }
+#endif
+
+  if (callbacks != nullptr && callbacks_enabled) {
+    // If this callbacks are called from any of this callbacks, it might get stuck in recursive loops.
+    // It's safer to disable callbacks when you are running one.
+    disableCallbacks();
     for (const auto& callback : *callbacks) {
-      callback(LogLevel(level), category, file, line, func, ptr);
+      callback.handler(level, category, thread_name, file, line, func, ptr, msg_len);
     }
+    // Enable those callbacks now.
+    enableCallbacks();
   }
 
   ptr += msg_len;
 
   if (newline) {
-    ptr += vlstbsp_sprintf(ptr, "\n");
+    int nb = vlstbsp_snprintf(ptr, nbytes_left, "\n");
+    nb = std::min(nb, nbytes_left);
+    ptr += nb;
   }
+  sbuffer[LEN - 1] = 0;
   fprintf(log_stream, "%s", sbuffer);
   fflush(log_stream);
   if (tee_stream) {
@@ -462,23 +635,7 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
 
   if (vlog_option_exit_on_fatal && level == VL_FATAL) {
     // print stack
-#if ENABLE_BACKTRACE
-    std::stringstream out;
-    PrintCurrentCallstack(out, true, nullptr, 2);
-    fprintf(log_stream, "\n%s\n", out.str().c_str());
-    fflush(log_stream);
-    if (tee_stream) {
-      fprintf(tee_stream, "\n%s\n", out.str().c_str());
-      fflush(tee_stream);
-    }
-    // Unregister the backtrace SIGABRT signal handler so we don't print two stack traces
-    signal(SIGABRT, SIG_DFL);
-#endif
-
-    // TODO - add callback for cleaning up drivers, etc.
-    fflush(log_stream);
-    __builtin_debugtrap();  // This helps break in the debugger
-    exit(-1);
+    PrintBacktraceAndExit();
   }
 }
 

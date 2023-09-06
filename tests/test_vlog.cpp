@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include "backward/callstack.h"
 #include "vlog.h"
 
 static bool Contains(const std::string_view haystack, const std::string_view needle) {
@@ -94,8 +93,48 @@ TEST(TestVLog, NonFatalLevels) {
   testing::internal::CaptureStdout();
   vlog_finest(VCAT_GENERAL, "%s", TOKEN.c_str());
   EXPECT_TRUE(Contains(testing::internal::GetCapturedStdout(), TOKEN));
+
+  // Test that vlog is able to truncate
+  std::string long_string(128 * 1024, 'A');
+  vlog_info(VCAT_GENERAL, "%s", long_string.c_str());
 }
 
+TEST(TestVLog, TestCallbacks) {
+  bool flag_1 = false;
+  bool flag_2 = false;
+  bool flag_3 = false;
+
+  vlog_add_callback([&]([[maybe_unused]] int level, [[maybe_unused]] const char* category,
+                        [[maybe_unused]] const char* threadName, [[maybe_unused]] const char* file,
+                        [[maybe_unused]] int line, [[maybe_unused]] const char* func,
+                        [[maybe_unused]] const char* logMsg, [[maybe_unused]] int msgLen) { flag_1 = true; });
+  int cb_id_1 = vlog_add_callback([&]([[maybe_unused]] int level, [[maybe_unused]] const char* category,
+                                      [[maybe_unused]] const char* threadName,
+                                      [[maybe_unused]] const char* file, [[maybe_unused]] int line,
+                                      [[maybe_unused]] const char* func, [[maybe_unused]] const char* logMsg,
+                                      [[maybe_unused]] int msgLen) { flag_2 = true; });
+  vlog_add_callback([&]([[maybe_unused]] int level, [[maybe_unused]] const char* category,
+                        [[maybe_unused]] const char* threadName, [[maybe_unused]] const char* file,
+                        [[maybe_unused]] int line, [[maybe_unused]] const char* func,
+                        [[maybe_unused]] const char* logMsg, [[maybe_unused]] int msgLen) { flag_3 = true; });
+  vlog_info(VCAT_GENERAL, "Run callback");
+  ASSERT_TRUE(flag_1);
+  ASSERT_TRUE(flag_2);
+  ASSERT_TRUE(flag_3);
+  flag_1 = flag_2 = flag_3 = false;
+  vlog_clear_callback(cb_id_1);
+  vlog_info(VCAT_GENERAL, "Run callback");
+
+  ASSERT_TRUE(flag_1);
+  ASSERT_FALSE(flag_2);
+  ASSERT_TRUE(flag_3);
+  flag_1 = flag_2 = flag_3 = false;
+  vlog_clear_callbacks();
+
+  ASSERT_FALSE(flag_1);
+  ASSERT_FALSE(flag_2);
+  ASSERT_FALSE(flag_3);
+}
 /*
 TEST(TestVLog, Fatal) {
   const std::string TOKEN = "d08206d9-211f-4a16-a7de-14417a8df699";

@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "backward/callstack.h"
 #include "vlog.h"
+
+char really_long_string[100000];
 
 static bool Contains(const std::string_view haystack, const std::string_view needle) {
   return haystack.find(needle) != std::string::npos;
@@ -81,6 +82,25 @@ TEST(TestVLog, NonFatalLevels) {
   testing::internal::CaptureStdout();
   vlog_finest(VCAT_GENERAL, "%s", TOKEN.c_str());
   EXPECT_TRUE(Contains(testing::internal::GetCapturedStdout(), TOKEN));
+
+  // Test that long strings are truncated instead of overflowing.
+  constexpr int VLOG_SBUFFER_LEN = 8192;  // defined in vlog.cpp
+  memset(really_long_string, 'A', sizeof(really_long_string));
+  testing::internal::CaptureStdout();
+  vlog_info(VCAT_GENERAL, "%s", really_long_string);
+  EXPECT_TRUE(testing::internal::GetCapturedStdout().length() == VLOG_SBUFFER_LEN - 1);
+
+  // Repeat with lots of optional information printed
+  vlog_option_location = true;
+  vlog_option_thread_id = true;
+  vlog_option_thread_name = true;
+  vlog_option_timelog = true;
+  vlog_option_time_date = true;
+  vlog_option_print_category = true;
+  vlog_option_print_level = true;
+  testing::internal::CaptureStdout();
+  vlog_info(VCAT_GENERAL, "%s", really_long_string);
+  EXPECT_TRUE(testing::internal::GetCapturedStdout().length() == VLOG_SBUFFER_LEN - 1);
 }
 
 int main(int argc, char** argv) {

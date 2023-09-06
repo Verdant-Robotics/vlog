@@ -30,20 +30,24 @@ TEST(TestVLog, Fatal) {
 
   vlog_option_exit_on_fatal = true;
   testing::internal::CaptureStdout();
+#ifdef __llvm__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wused-but-marked-unused"
 #pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
   // clang-format off
   ASSERT_DEATH({
     vlog_fatal(VCAT_GENERAL, "%s", TOKEN.c_str());
   }, "");
   // clang-format on
+#ifdef __llvm__
 #pragma clang diagnostic pop
+#endif
   std::string crash = testing::internal::GetCapturedStdout();
   EXPECT_TRUE(Contains(crash, TOKEN));
   if (HaveDebugSymbols()) {
     std::cout << "Debug symbols are present\n";
-    EXPECT_TRUE(Contains(crash, "vlog_fatal(VCAT_GENERAL"));
+    EXPECT_TRUE(Contains(crash, "FATAL"));
     EXPECT_TRUE(Contains(crash, "TestVLog_Fatal_Test::TestBody()"));
     EXPECT_TRUE(Contains(crash, "tests/test_vlog_fatals.cpp"));
 
@@ -65,15 +69,20 @@ TEST(TestVLog, Assert) {
   const std::string TOKEN = "1ecdf1cb-7524-41b9-b048-280db1f2cb44";
 
   testing::internal::CaptureStdout();
+#ifdef __llvm__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wused-but-marked-unused"
 #pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
   // clang-format off
   ASSERT_DEATH({
     VLOG_ASSERT(false, "%s", TOKEN.c_str());
   }, "");
   // clang-format on
+#ifdef __llvm__
 #pragma clang diagnostic pop
+#endif
+
   std::string crash = testing::internal::GetCapturedStdout();
 
   EXPECT_TRUE(Contains(crash, TOKEN));

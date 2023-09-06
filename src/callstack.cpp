@@ -75,10 +75,14 @@ void PrintCurrentCallstack(std::ostream& output, bool color, siginfo_t* info, si
   if (info == nullptr) {
     st.load_here(MAX_STACK_FRAMES);
   } else {
+#ifdef __llvm__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
     st.load_from(info->si_addr, MAX_STACK_FRAMES);
+#ifdef __llvm__
 #pragma clang diagnostic pop
+#endif
   }
   if (skipFrames > 0) st.skip_n_firsts(skipFrames);
   PrintCallstack(output, st, color);
