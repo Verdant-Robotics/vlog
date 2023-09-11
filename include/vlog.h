@@ -109,8 +109,16 @@ void set_sim_time(double t);
 bool is_sim_time();
 double time_now();
 
+#ifdef _MSC_VER
+// No equivalent in MSVC for printf-style checks, so we leave it empty
+#define PRINTF_ATTRIBUTE(a, b)
+#else
+// For GCC and Clang
+#define PRINTF_ATTRIBUTE(a, b) __attribute__((format(printf, a, b)))
+#endif
+
 void vlog_func(int level, const char* category, bool newline, const char* file, int line, const char* func,
-               const char* fmt, ...) __attribute__((format(printf, 7, 8)));
+               const char* fmt, ...) PRINTF_ATTRIBUTE(7, 8);
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -215,5 +223,9 @@ const char* getOptionCategory();
 void setOptionCategory(const char* cat);
 
 std::string FormatString(const char* fmt, ...);
+
+#ifdef _WIN32
+typedef int pid_t;
+#endif
 
 pid_t GetThreadId();

@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -410,6 +409,7 @@ void vlog_fini() {
 #ifdef __EMSCRIPTEN__
 pid_t GetThreadId() { return 0; }
 #elif defined(SYS_gettid) && !defined(__APPLE__)
+#include <sys/syscall.h>
 pid_t GetThreadId() { return pid_t(syscall(SYS_gettid)); }
 #elif defined(__APPLE__)
 #include <pthread.h>
