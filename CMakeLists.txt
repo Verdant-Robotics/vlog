@@ -41,8 +41,11 @@ include(FetchDependency)
 # Have the stb susbsystem separate because it does not support all the warnings
 add_library(vlogstb STATIC stb/vlog_stbprint.cpp)
 target_include_directories(vlogstb SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/stb)
-target_compile_options(vlogstb PRIVATE -Wno-extra-semi-stmt
-  -Wno-conditional-uninitialized -Wno-implicit-fallthrough)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    target_compile_options(vlogstb PRIVATE
+        -Wno-extra-semi-stmt -Wno-conditional-uninitialized -Wno-implicit-fallthrough)
+endif()
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14.0.0")
   # on new compiler version, we need to disable warning
   target_compile_options(vlogstb PRIVATE -Wno-reserved-identifier)

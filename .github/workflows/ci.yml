@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Install CMake
-      - name: Install CMake
+      - name: Install CMake, libelf, libdwarf
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake
+          sudo apt-get install -y cmake libelf-dev libdwarf-dev
       # Clone the repository
       - uses: actions/checkout@v4
       # CMake configure and build
