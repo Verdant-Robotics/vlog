@@ -403,9 +403,15 @@ void vlog_fini() {
 
 #ifdef __EMSCRIPTEN__
 pid_t GetThreadId() { return 0; }
-#else
-#ifdef SYS_gettid
+#elif defined(SYS_gettid) && !defined(__APPLE__)
 pid_t GetThreadId() { return pid_t(syscall(SYS_gettid)); }
+#elif defined(__APPLE__)
+#include <pthread.h>
+pid_t GetThreadId() {
+    uint64_t tid64;
+    pthread_threadid_np(nullptr, &tid64);
+    return static_cast<pid_t>(tid64);
+}
 #else
 #error "SYS_gettid unavailable on this system"
 #endif
