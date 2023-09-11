@@ -3877,8 +3877,6 @@ public:
     error_addr = reinterpret_cast<void *>(uctx->uc_mcontext.gregs[REG_EIP]);
 #elif defined(__arm__)
     error_addr = reinterpret_cast<void *>(uctx->uc_mcontext.arm_pc);
-#elif defined(__aarch64__)
-    error_addr = reinterpret_cast<void *>(uctx->uc_mcontext.pc);
 #elif defined(__mips__)
     error_addr = reinterpret_cast<void *>(reinterpret_cast<struct sigcontext*>(&uctx->uc_mcontext)->sc_pc);
 #elif defined(__ppc__) || defined(__powerpc) || defined(__powerpc__) ||        \
@@ -3889,7 +3887,9 @@ public:
 #elif defined(__APPLE__) && defined(__x86_64__)
     error_addr = reinterpret_cast<void *>(uctx->uc_mcontext->__ss.__rip);
 #elif defined(__APPLE__)
-    error_addr = reinterpret_cast<void *>(uctx->uc_mcontext->__ss.__eip);
+    error_addr = reinterpret_cast<void *>(uctx->uc_mcontext->__ss.__pc);
+#elif defined(__aarch64__)
+    error_addr = reinterpret_cast<void *>(uctx->uc_mcontext.pc);
 #else
 #warning ":/ sorry, ain't know no nothing none not of your architecture!"
 #endif
