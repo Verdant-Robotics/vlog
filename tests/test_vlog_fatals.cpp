@@ -12,10 +12,12 @@ static bool HaveDebugSymbols() {
   // Force the assumption of debug symbols for debug builds. This will induce a
   // test failure if they are not present in a debug build for whatever reason
   return true;
-#else
+#elif ENABLE_BACKWARD
   std::ostringstream out;
   PrintCurrentCallstack(out, false, nullptr, 0);
   return Contains(out.str(), "test_vlog_fatals.cpp");
+#else
+  return false;
 #endif
 }
 
@@ -54,14 +56,15 @@ TEST(TestVLog, Fatal) {
     if (!Contains(crash, "vlog_fatal(VCAT_GENERAL")) {
       std::cout << "Captured Output:\n" << crash << '\n';
     }
-
   } else {
+#if ENABLE_BACKWARD
     std::cout << "No debug symbols present\n";
     EXPECT_TRUE(Contains(crash, "tests/test_vlog_fatals"));
 
     if (!Contains(crash, "tests/test_vlog_fatals")) {
       std::cout << "Captured Output:\n" << crash << '\n';
     }
+#endif
   }
 }
 

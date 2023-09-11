@@ -24,7 +24,10 @@ macro(add_vlog_test test_name test_cpp)
       -Wno-global-constructors \
       -Wno-double-promotion \
       -Wno-padded")
-  target_link_libraries(${test_name} PUBLIC vlog gtest backward)
+  target_link_libraries(${test_name} PUBLIC vlog gtest)
+  if(${ENABLE_BACKTRACE})
+    target_link_libraries(${test_name} PUBLIC backward)
+  endif()
   if (COMMAND add_unit_test)
     add_unit_test(${test_name} ${test_name})
   else()
