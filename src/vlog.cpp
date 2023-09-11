@@ -5,25 +5,19 @@
 #include <string.h>
 
 #include <atomic>
+#include <filesystem>
 #include <mutex>
 #include <vector>
 
 #define STB_SPRINTF_DECORATE(name) vlstbsp_##name
 #include <stb/stb_sprintf.h>
 
-#if (defined(_GLIBCXX_RELEASE) && (_GLIBCXX_RELEASE > 7)) || \
-    (defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION > 10000))
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
-
 #ifdef __APPLE__
 #include <crt_externs.h>
 static char **environ = *_NSGetEnviron();
 #endif
+
+namespace fs = std::filesystem;
 
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
