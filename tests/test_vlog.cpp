@@ -95,8 +95,12 @@ TEST(TestVLog, NonFatalLevels) {
   EXPECT_TRUE(Contains(testing::internal::GetCapturedStdout(), TOKEN));
 
   // Test that vlog is able to truncate
+  testing::internal::CaptureStdout();
   std::string long_string(128 * 1024, 'A');
   vlog_info(VCAT_GENERAL, "%s", long_string.c_str());
+  const std::string longOutput = testing::internal::GetCapturedStdout();
+  EXPECT_TRUE(Contains(longOutput, "AAAA"));
+  EXPECT_EQ(longOutput.length(), 8191);
 }
 
 TEST(TestVLog, TestCallbacks) {
