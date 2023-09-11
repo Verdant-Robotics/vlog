@@ -24,6 +24,11 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
+#ifdef __APPLE__
+#include <crt_externs.h>
+static char **environ = *_NSGetEnviron();
+#endif
+
 static double time_sim_start = -1;
 static double time_sim_ratio = 1;
 static double time_real_start = -1;
