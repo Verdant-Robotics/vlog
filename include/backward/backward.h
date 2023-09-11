@@ -3857,7 +3857,9 @@ public:
     }
 
     std::set_terminate(&terminator);
+#if __cplusplus < 201703L
     std::set_unexpected(&terminator);
+#endif
 
     _loaded = success;
   }
