@@ -17,12 +17,6 @@ option(ENABLE_VLOG_TESTS "Enable VLog Tests" ON)
 
 set(VLOG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-  add_compile_options(-march=x86-64-v3)
-else()
-  add_compile_options(-mcpu=native)
-endif()
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -66,6 +60,7 @@ target_link_libraries(vlog PRIVATE vlogstb)
 target_link_libraries(vlog PUBLIC pthread)
 
 if(${ENABLE_BACKTRACE})
+  message("Enabling backtrace trace")
   find_package(LibElf REQUIRED)
   find_package(LibDwarf REQUIRED)
 
@@ -73,11 +68,13 @@ if(${ENABLE_BACKTRACE})
   target_compile_definitions(vlog PRIVATE -DBACKWARD_HAS_DWARF=1)
 
   target_sources(vlog PRIVATE src/callstack.cpp)
+  target_include_directories(vlog PRIVATE ${LIBELF_INCLUDE_DIRS} ${LIBDWARF_INCLUDE_DIRS})
   target_link_libraries(vlog PRIVATE dl ${LIBELF_LIBRARIES} ${LIBDWARF_LIBRARIES})
 
   add_library(backward INTERFACE)
   target_include_directories(backward INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 else()
+  message("Disabling backtrace trace")
   target_compile_definitions(vlog PRIVATE ENABLE_BACKTRACE=0)
 endif()
 
