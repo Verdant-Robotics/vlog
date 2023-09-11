@@ -48,10 +48,10 @@ endif()
 add_library(vlog SHARED src/vlog.cpp)
 target_include_directories(vlog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(vlog PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(vlog PRIVATE -pedantic -Werror -Wall -Wextra -Wno-stringop-truncation)
-else ()
-  target_compile_options(vlog PRIVATE  -Weverything -Werror -Wall -Wextra  -Werror=return-type
+elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+  target_compile_options(vlog PRIVATE -Weverything -Werror -Wall -Wextra -Werror=return-type
           -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-ctad-maybe-unsupported
           -Wno-missing-noreturn -Wno-global-constructors -Wno-reserved-id-macro)
 endif()
