@@ -88,7 +88,8 @@ volatile bool vlog_option_exit_on_fatal = true;
 volatile bool vlog_option_color = true;
 static std::atomic<bool> callbacks_enabled(true);
 static std::atomic<bool> vlog_init_done(false);
-static std::recursive_mutex vlog_mutex;
+static std::once_flag vlog_mutex_flag;
+static std::recursive_mutex* vlog_mutex = nullptr;
 static FILE* log_stream = nullptr;
 static FILE* tee_stream = nullptr;
 static std::atomic<int> callback_counter = 0;
@@ -99,6 +100,11 @@ struct CallbackContainer {
 };
 static std::vector<CallbackContainer<VlogHandler>>* callbacks = nullptr;
 static std::vector<CallbackContainer<VlogNewFileHandler>>* newfile_callbacks = nullptr;
+
+static std::recursive_mutex& getVlogMutex() {
+  std::call_once(vlog_mutex_flag, []() { vlog_mutex = new std::recursive_mutex(); });
+  return *vlog_mutex;
+}
 
 int getOptionLevel() { return __atomic_load_n(&vlog_option_level, __ATOMIC_SEQ_CST); }
 
@@ -244,7 +250,7 @@ static void enableCallbacks() { callbacks_enabled = true; }
 static void disableCallbacks() { callbacks_enabled = false; }
 
 void set_log_level_string(const char* level) {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
   bool found = false;
   for (auto& elem : log_levels) {
     if (!strcasecmp(level, elem.str)) {
@@ -267,7 +273,7 @@ void set_log_level_string(const char* level) {
 }
 
 int vlog_add_callback(VlogHandler callback) {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
 #ifdef __GNUC__
   if (callbacks == nullptr) __builtin_trap();
 #else
@@ -279,7 +285,7 @@ int vlog_add_callback(VlogHandler callback) {
 }
 
 int vlog_add_new_file_callback(VlogNewFileHandler callback) {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
 #ifdef __GNUC__
   if (newfile_callbacks == nullptr) __builtin_trap();
 #else
@@ -291,7 +297,7 @@ int vlog_add_new_file_callback(VlogNewFileHandler callback) {
 }
 
 void vlog_clear_callback(int id) {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
   if(callbacks) {
     for (auto& callback : *callbacks) {
       if (callback.callback_id == id) {
@@ -304,13 +310,13 @@ void vlog_clear_callback(int id) {
 }
 
 void vlog_clear_callbacks() {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
   delete callbacks;
   callbacks = nullptr;
 }
 
 bool vlog_init() {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
   if (!vlog_init_done) {
     log_stream = stdout;
 
@@ -414,7 +420,6 @@ pid_t GetThreadId() {
 }
 #else
 #error "SYS_gettid unavailable on this system"
-#endif
 #endif
 
 static const char* GetThreadName() {
@@ -527,7 +532,7 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
     }
   }
 
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
 
   *ptr = 0;
 
@@ -652,7 +657,7 @@ void vlog_func(int level, const char* category, bool newline, const char* file, 
 
 void vlog_flush()  // Ensure all data is on disk
 {
-  std::lock_guard guard(vlog_mutex);
+  std::lock_guard guard(getVlogMutex());
   if (!vlog_init_done) {
     vlog_init();
   }
